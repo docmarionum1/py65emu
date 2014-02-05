@@ -56,7 +56,7 @@ class TestMMU(unittest.TestCase):
         m.write(16, 25)
         self.assertEquals(m.blocks[0]['memory'][16], 25)
         m.write(1056, 55)
-        self.assertEqual(m.blocks[1]['memory'][32], 55, m.blocks[1]['memory'])
+        self.assertEquals(m.blocks[1]['memory'][32], 55, m.blocks[1]['memory'])
 
     def test_write_readonly(self):
         m = MMU([(0, 16, True), (16, 16), (32, 16, True)])
@@ -83,6 +83,14 @@ class TestMMU(unittest.TestCase):
             m.read(-1)
         with self.assertRaises(IndexError):
             m.read(128)
+
+    def test_reset(self):
+        m = MMU([(0, 16, True), (16, 16, False)])
+        m.blocks[0]['memory'][0] = 5
+        m.write(16, 10)
+        m.reset()
+        self.assertEquals(m.read(0), 5)
+        self.assertEquals(m.read(16), 0)
 
     def tearDown(self):
         pass

@@ -8,7 +8,6 @@ class ReadOnlyError(TypeError):
 
 class MMU:
     
-
     def __init__(self, blocks):
         """
         Initialize the MMU with the blocks specified in blocks.  blocks
@@ -23,6 +22,14 @@ class MMU:
         
         for b in blocks:
             self.addBlock(*b)
+
+    def reset(self):
+        """
+        In all writeable blocks reset all values to zero.
+        """
+        for b in self.blocks:
+            if not b['readonly']:
+                b['memory'] = array.array('B', [0]*b['length'])
 
     def addBlock(self, start, length, readonly=False, value=None):
         """
@@ -48,6 +55,9 @@ class MMU:
         #TODO: implement initialization value
 
     def getBlock(self, addr):
+        """
+        Get the block associated with the given address.
+        """
         for b in self.blocks:
             if addr >= b['start'] and addr < b['start']+b['length']:
                 return b
@@ -55,9 +65,15 @@ class MMU:
         raise IndexError
 
     def getIndex(self, block, addr):
+        """
+        Get the index, relative to the block, of the address in the block.
+        """
         return addr-block['start']
 
     def write(self, addr, value):
+        """
+        Write a value to the given address if it is writeable.
+        """
         b = self.getBlock(addr)
         if b['readonly']:
             raise ReadOnlyError()
@@ -67,6 +83,9 @@ class MMU:
         b['memory'][i] = value
 
     def read(self, addr):
+        """
+        Return the value at the address.
+        """
         b = self.getBlock(addr)
         i = self.getIndex(b, addr)
         return b['memory'][i]
