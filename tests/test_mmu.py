@@ -29,6 +29,16 @@ class TestMMU(unittest.TestCase):
             (128, 128, True, None)
         ])
 
+    def test_create_with_list(self):
+        m = MMU([
+            (0, 128, False, [1, 2, 3])
+        ])
+
+        self.assertEquals(m.blocks[0]['memory'][0], 1)
+        self.assertEquals(m.blocks[0]['memory'][2], 3)
+        self.assertEquals(m.blocks[0]['memory'][3], 0)
+
+
     def test_create_overlapping(self):
         with self.assertRaises(MemoryRangeError):
             m = MMU([(0, 129), (128, 128)])
@@ -70,8 +80,8 @@ class TestMMU(unittest.TestCase):
         m = MMU([(0, 128)])
         m.write(16, 5)
         m.write(64, 111)
-        self.assertEqual(5, m.read(16))
-        self.assertEqual(111, m.read(64))
+        self.assertEquals(5, m.read(16))
+        self.assertEquals(111, m.read(64))
 
     def test_index_error(self):
         m = MMU([(0, 128)])

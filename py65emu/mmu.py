@@ -47,12 +47,17 @@ class MMU:
                 raise MemoryRangeError()
 
 
-        self.blocks.append({
+        newBlock = {
             'start': start, 'length': length, 'readonly': readonly,
             'memory': array.array('B', [0]*length)
-        })
+        }
 
         #TODO: implement initialization value
+        if type(value) == list:
+            for i in range(len(value)):
+                newBlock['memory'][i] = value[i]
+
+        self.blocks.append(newBlock)
 
     def getBlock(self, addr):
         """

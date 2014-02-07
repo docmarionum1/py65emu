@@ -33,18 +33,20 @@ class Registers:
     def clearFlag(self, flag):
         self.p = self.p & (255 - self.flagBit[flag])
 
-    @property
-    def c(self):
-        return self.p & 1
-
 
 class CPU:
     
-    def __init__(self, mmu=None):
+    def __init__(self, mmu=None, pc=None):
         self.mmu = mmu
-        self.r = registers()
+        self.r = Registers()
         self.cc = 0
         self.reset()
+
+        if pc:
+            self.r.pc = pc
+        else:
+            # if pc is none get the address from $FFFD,$FFFC
+            pass
 
         
     def reset(self):
@@ -57,6 +59,101 @@ class CPU:
         instruction is an array of bytes.
         """
         pass
+
+    def nextByte(self):
+        v = self.mmu.read(self.r.pc)
+        self.r.pc += 1
+        return v
+
+    def nextWord(self):
+        low = self.nextByte()
+        high = self.nextByte()
+        return (high << 8) + low
+
+    # Addressing modes
+    def z_a(self):
+        return self.nextByte()
+
+    def zx_a(self):
+        return (self.nextByte() + self.r.x) & 0xff
+
+    def zy_a(self):
+        return (self.nextByte() + self.r.y) & 0xff
+
+    def a_a(self):
+        return self.nextWord()
+
+    def ax_x(self):
+        o = self.nextWord()
+        a = o + self.r.x
+        if math.floor(o/0xff) != math.floor(a/0xff):
+            cpu.cc += 1
+
+        return a
+
+    def ax_y(self):
+        o = self.nextWord()
+        a = o + self.r.y
+        if math.floor(o/0xff) != math.floor(a/0xff):
+            cpu.cc += 1
+
+        return a
+
+    def i_a(self):
+        """Only used by indirect JMP"""
+        i = self.nextWord()
+        #Doesn't carry, so if the low byte is in the XXFF position
+        #Then the high byte will be XX00 rather than XY00
+        if i&0xff == 0xff:
+            j = i - 0xff
+        else:
+            j = i + 1
+
+        return (self.mmu.read(j) << 8) + self.mmu.read(i)
+
+    def ix_a(self):
+        i = self.nextWord() + self.r.x
+        return (self.mmu.read(i + 1) << 8) + self.mmu.read(i)
+
+    def iy_a(self):
+        i = self.nextWord()
+        o = (self.mmu.read(i + 1) << 8) + self.mmu.read(i)
+        a = o + self.r.y
+
+        if math.floor(o/0xff) != math.floor(a/0xff):
+            cpu.cc += 1
+
+        return a
+
+    def im(self):
+        return self.nextByte()
+
+    def z(self):
+        return self.mmu.read(self.z_a())
+
+    def zx(self):
+        return self.mmu.read(self.zx_a())
+
+    def zy(self):
+        return self.mmu.read(self.zy_a())
+
+    def a(self):
+        return self.mmu.read(self.a_a())
+
+    def ax(self):
+        return self.mmu.read(self.ax_a())
+
+    def ay(self):
+        return self.mmu.read(self.ay_a())
+
+    def i(self):
+        return self.mmu.read(self.i_a())
+
+    def ix(self):
+        return self.mmu.read(self.ix_a())
+
+    def iy(self):
+        return self.mmu.read(self.iy_a())
 
     def ADC(self, v): pass
 
