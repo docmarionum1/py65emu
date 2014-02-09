@@ -86,7 +86,7 @@ class MMU:
 
         i = self.getIndex(b, addr)
 
-        b['memory'][i] = value
+        b['memory'][i] = value & 0xff
 
     def read(self, addr):
         """

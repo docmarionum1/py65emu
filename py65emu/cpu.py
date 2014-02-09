@@ -40,6 +40,14 @@ class Registers:
     def clearFlags(self):
         self.p = 0
 
+    def ZN(self, v):
+        """
+        The criteria for Z and N flags are standard.  Z gets set if the 
+        value is zero and N gets set to the same value as bit 7 of the value.
+        """
+        self.setFlag('Z', v == 0)
+        self.setFlag('N', v & 0x80)
+
 
 class CPU:
     
@@ -57,19 +65,41 @@ class CPU:
 
         self._create_ops()
 
-    # All the operations.  For each operation have a list of 2-tuples
+    # All the operations.  For each operation have the name of the operation,
+    # whether it acts on values, "v" or on addresses, "a" and a list of 4-tuples
     # containing the valid addressing modes for the operation, the 
-    # base number of cycles it takes, and the opcode.
+    # base number of cycles it takes, the opcode, and a target register, if valid.
     _ops = [
-        ("ADC", [
-            ("im", 2, 0x69),
-            ("z",  3, 0x65),
-            ("zx", 4, 0x75),
-            ("a",  4, 0x6d),
-            ("ax", 4, 0x7d),
-            ("ay", 4, 0x79),
-            ("ix", 6, 0x61),
-            ("iy", 5, 0x71)
+        ("ADC", "v", [
+            ("im", 2, 0x69, None),
+            ("z",  3, 0x65, None),
+            ("zx", 4, 0x75, None),
+            ("a",  4, 0x6d, None),
+            ("ax", 4, 0x7d, None),
+            ("ay", 4, 0x79, None),
+            ("ix", 6, 0x61, None),
+            ("iy", 5, 0x71, None)
+        ]),
+        ("AND", "v", [
+            ("im", 2, 0x29, None),
+            ("z",  3, 0x25, None),
+            ("zx", 4, 0x35, None),
+            ("a",  4, 0x2d, None),
+            ("ax", 4, 0x3d, None),
+            ("ay", 4, 0x39, None),
+            ("ix", 6, 0x21, None),
+            ("iy", 5, 0x31, None)
+        ]),
+        ("ASL", "a", [
+            ("im", 2, 0x0a, "a"),
+            ("z",  5, 0x06, None),
+            ("zx", 6, 0x16, None),
+            ("a",  6, 0x0e, None),
+            ("ax", 7, 0x1e, None)
+        ]),
+        ("BIT", "v", [
+            ("z", 3, 0x24, None),
+            ("a", 4, 0x2c, None)
         ])
     ]
 
@@ -79,11 +109,20 @@ class CPU:
             op_f(a_f())
             self.cc += cc
 
+        def f_target(target):
+            return target
+
         self.ops = [None]*0xff
-        for op,addrs in self._ops:
+        for op,atype,addrs in self._ops:
             op_f = getattr(self, op)
-            for a,cc,opcode in addrs:
-                a_f = getattr(self, a)
+            for a,cc,opcode,target in addrs:
+                if target:
+                    a_f = functools.partial(f_target, target)
+                elif atype == 'v':
+                    a_f = getattr(self, a)
+                else:
+                    a_f = getattr(self, "%s_a" % a)
+
                 self.ops[opcode] = functools.partial(f, self, op_f, a_f)
 
 
@@ -108,6 +147,13 @@ class CPU:
         low = self.nextByte()
         high = self.nextByte()
         return (high << 8) + low
+
+    def fromBCD(self, v):
+        return ((((v&0xf0)/0x10)*10) + (v&0xf))
+
+    def toBCD(self, v):
+        return (int(math.floor(v/10))*16 + (v%10))
+
 
     # Addressing modes
     def z_a(self):
@@ -164,53 +210,62 @@ class CPU:
 
         return a
 
-    def im(self):
-        return self.nextByte()
 
-    def z(self):
-        return self.mmu.read(self.z_a())
+    # Return values based on the addressing mode
+    def im(self): return self.nextByte()
+    def z(self):  return self.mmu.read(self.z_a())
+    def zx(self): return self.mmu.read(self.zx_a())
+    def zy(self): return self.mmu.read(self.zy_a())
+    def a(self):  return self.mmu.read(self.a_a())
+    def ax(self): return self.mmu.read(self.ax_a())
+    def ay(self): return self.mmu.read(self.ay_a())
+    def i(self):  return self.mmu.read(self.i_a())
+    def ix(self): return self.mmu.read(self.ix_a())
+    def iy(self): return self.mmu.read(self.iy_a())
 
-    def zx(self):
-        return self.mmu.read(self.zx_a())
 
-    def zy(self):
-        return self.mmu.read(self.zy_a())
-
-    def a(self):
-        return self.mmu.read(self.a_a())
-
-    def ax(self):
-        return self.mmu.read(self.ax_a())
-
-    def ay(self):
-        return self.mmu.read(self.ay_a())
-
-    def i(self):
-        return self.mmu.read(self.i_a())
-
-    def ix(self):
-        return self.mmu.read(self.ix_a())
-
-    def iy(self):
-        return self.mmu.read(self.iy_a())
-
+    # Operators
     def ADC(self, v):
-        if self.r.getFlag('D'): #decimal mode
-            pass
-        else:
-            v1 = self.r.a
-            v2 = v
+        v1 = self.r.a
+        v2 = v
 
+        if self.r.getFlag('D'): #decimal mode
+            d1 = self.fromBCD(v1)
+            d2 = self.fromBCD(v2)
+
+            r = d1 + d2 + self.r.getFlag('C')
+            self.r.a = self.toBCD(r%100)
+
+            self.r.setFlag('C', r > 99)
+        else:
             self.r.a = v1 + v2 + self.r.getFlag('C')
 
             self.r.setFlag('C', self.r.a > 0xff)
             self.r.a = self.r.a & 0xff
 
-        self.r.setFlag('Z', self.r.a == 0)
-        self.r.setFlag('N', self.r.a & 0x80)
+        self.r.ZN(self.r.a)
         self.r.setFlag('V', (
-                (v1 <= 127 and v2 <= 127 and self.r.a > 127) or
-                (v1 >= 128 and v2 >= 128 and self.r.a < 128)
-            )
-        )
+            (v1 <= 127 and v2 <= 127 and self.r.a > 127) or
+            (v1 >= 128 and v2 >= 128 and self.r.a < 128)
+        ))
+
+    def AND(self, v):
+        self.r.a = (self.r.a & v) & 0xff
+        self.r.ZN(self.r.a)
+
+    def ASL(self, a):
+        if a == "a":
+            v = self.r.a << 1
+            self.r.a = v & 0xff
+        else:
+            v = self.mmu.read(a) << 1
+            self.mmu.write(a, v)
+
+        self.r.setFlag('C', v > 0xff)
+        self.r.ZN(v&0xff)
+
+    def BIT(self, v):
+        self.r.setFlag('Z', self.r.a & v == 0)
+        self.r.setFlag('N', v & 0x80)
+        self.r.setFlag('V', v & 0x40)
     

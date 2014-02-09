@@ -27,6 +27,20 @@ class TestCPU(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_fromBCD(self):
+        c = self._cpu()
+        self.assertEqual(c.fromBCD(0), 0)
+        self.assertEqual(c.fromBCD(0x05), 5)
+        self.assertEqual(c.fromBCD(0x11), 11)
+        self.assertEqual(c.fromBCD(0x99), 99)
+
+    def test_toBCD(self):
+        c = self._cpu()
+        self.assertEqual(c.toBCD(0), 0)
+        self.assertEqual(c.toBCD(5), 0x05)
+        self.assertEqual(c.toBCD(11), 0x11)
+        self.assertEqual(c.toBCD(99), 0x99)
+        
     def test_nextByte(self):
         c = self._cpu(romInit=[1, 2, 3])
         self.assertEqual(c.nextByte(), 1)
@@ -113,6 +127,63 @@ class TestCPU(unittest.TestCase):
         c.ops[0x69]()
         c.ops[0x69]()
         self.assertTrue(c.r.getFlag('V'))
+
+    def test_adc_decimal(self):
+        c = self._cpu(romInit=[0x01, 0x55, 0x50])
+        c.r.setFlag('D')
+
+        c.ops[0x69]()
+        self.assertEqual(c.r.a, 0x01)
+        c.ops[0x69]()
+        self.assertEqual(c.r.a, 0x56)
+        c.ops[0x69]()
+        self.assertEqual(c.r.a, 0x06)
+        self.assertTrue(c.r.getFlag('C'))
+
+    def test_and(self):
+        c = self._cpu(romInit=[0xff, 0xff, 0x01, 0x2])
+
+        c.r.a = 0x00
+        c.ops[0x29]()
+        self.assertEqual(c.r.a, 0)
+
+        c.r.a = 0xff
+        c.ops[0x29]()
+        self.assertEqual(c.r.a, 0xff)
+
+        c.r.a = 0x01
+        c.ops[0x29]()
+        self.assertEqual(c.r.a, 0x01)
+
+        c.r.a = 0x01
+        c.ops[0x29]()
+        self.assertEqual(c.r.a, 0x00)
+
+    def test_asl(self):
+        c = self._cpu(romInit=[0x00])
+
+        c.r.a = 1
+        c.ops[0x0a]()
+        self.assertEqual(c.r.a, 2)
+
+        c.mmu.write(0, 4)
+        c.ops[0x06]()
+        self.assertEqual(c.mmu.read(0), 8)
+
+    def test_bit(self):
+        c = self._cpu(romInit=[0x00, 0x00, 0x10])
+        c.mmu.write(0, 0xff)
+        c.r.a = 1
+
+        c.ops[0x24]() #Zero page
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertTrue(c.r.getFlag('V'))
+
+        c.ops[0x2c]() #Absolute
+        self.assertTrue(c.r.getFlag('Z'))
+        self.assertFalse(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('V'))
 
     def tearDown(self):
         pass
