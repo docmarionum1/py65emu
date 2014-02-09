@@ -25,6 +25,10 @@ class TestRegisters(unittest.TestCase):
         r.clearFlag('N')
         self.assertEqual(r.p, 2)
         self.assertTrue(r.getFlag('Z'))
+        r.setFlag('Z', False)
+        self.assertFalse(r.getFlag('Z'))
+        r.setFlag('Z', False)
+        self.assertFalse(r.getFlag('Z'))
 
 
     def tearDown(self):

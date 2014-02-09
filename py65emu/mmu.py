@@ -63,6 +63,7 @@ class MMU:
         """
         Get the block associated with the given address.
         """
+
         for b in self.blocks:
             if addr >= b['start'] and addr < b['start']+b['length']:
                 return b

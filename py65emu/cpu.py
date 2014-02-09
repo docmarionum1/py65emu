@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import math, functools
 
 class Registers:
     """ An object to hold the CPU registers. """
@@ -27,11 +28,17 @@ class Registers:
     def getFlag(self, flag):
         return bool(self.p & self.flagBit[flag])
 
-    def setFlag(self, flag):
-        self.p = self.p | self.flagBit[flag]
+    def setFlag(self, flag, v=True):
+        if v:
+            self.p = self.p | self.flagBit[flag]
+        else:
+            self.clearFlag(flag)            
 
     def clearFlag(self, flag):
         self.p = self.p & (255 - self.flagBit[flag])
+
+    def clearFlags(self):
+        self.p = 0
 
 
 class CPU:
@@ -47,6 +54,38 @@ class CPU:
         else:
             # if pc is none get the address from $FFFD,$FFFC
             pass
+
+        self._create_ops()
+
+    # All the operations.  For each operation have a list of 2-tuples
+    # containing the valid addressing modes for the operation, the 
+    # base number of cycles it takes, and the opcode.
+    _ops = [
+        ("ADC", [
+            ("im", 2, 0x69),
+            ("z",  3, 0x65),
+            ("zx", 4, 0x75),
+            ("a",  4, 0x6d),
+            ("ax", 4, 0x7d),
+            ("ay", 4, 0x79),
+            ("ix", 6, 0x61),
+            ("iy", 5, 0x71)
+        ])
+    ]
+
+    def _create_ops(self):
+
+        def f(self, op_f, a_f):
+            op_f(a_f())
+            self.cc += cc
+
+        self.ops = [None]*0xff
+        for op,addrs in self._ops:
+            op_f = getattr(self, op)
+            for a,cc,opcode in addrs:
+                a_f = getattr(self, a)
+                self.ops[opcode] = functools.partial(f, self, op_f, a_f)
+
 
         
     def reset(self):
@@ -83,19 +122,19 @@ class CPU:
     def a_a(self):
         return self.nextWord()
 
-    def ax_x(self):
+    def ax_a(self):
         o = self.nextWord()
         a = o + self.r.x
         if math.floor(o/0xff) != math.floor(a/0xff):
-            cpu.cc += 1
+            self.cc += 1
 
         return a
 
-    def ax_y(self):
+    def ay_a(self):
         o = self.nextWord()
         a = o + self.r.y
         if math.floor(o/0xff) != math.floor(a/0xff):
-            cpu.cc += 1
+            self.cc += 1
 
         return a
 
@@ -121,7 +160,7 @@ class CPU:
         a = o + self.r.y
 
         if math.floor(o/0xff) != math.floor(a/0xff):
-            cpu.cc += 1
+            self.cc += 1
 
         return a
 
@@ -155,303 +194,23 @@ class CPU:
     def iy(self):
         return self.mmu.read(self.iy_a())
 
-    def ADC(self, v): pass
+    def ADC(self, v):
+        if self.r.getFlag('D'): #decimal mode
+            pass
+        else:
+            v1 = self.r.a
+            v2 = v
 
-    def ADC_im(self, mem): pass
-    def ADC_z(self): pass
-    def ADC_zx(self): pass
-    def ADC_a(self): pass
-    def ADC_ax(self): pass
-    def ADC_ay(self): pass
-    def ADC_ix(self): pass
-    def ADC_iy(self): pass
+            self.r.a = v1 + v2 + self.r.getFlag('C')
 
-    opmap = [
-        # /*0*/
-        # self.BRK_im,
-        # self.ORA_ix,
-        # self.XX,
-        # self.XX,
-        # self.NOP_z,
-        # self.ORA_z,
-        # self.ASL_z,
-        # self.XX,
-        # self.PHP_im,
-        # self.ORA_im,
-        # self.ASL_im,
-        # self.XX,
-        # self.XX,
-        # self.ORA_a,
-        # self.ASL_a,
-        # self.XX,
+            self.r.setFlag('C', self.r.a > 0xff)
+            self.r.a = self.r.a & 0xff
 
-        # /*1*/
-        # self.BPL_rel,
-        # self.ORA_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.ORA_zx,
-        # self.ASL_zx,
-        # self.XX,
-        # self.CLC_im,
-        # self.ORA_ay,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.ORA_ax,
-        # self.ASL_ax,
-        # self.XX,
-
-        # /*2*/
-        # self.JSR_a,
-        # self.AND_ix,
-        # self.XX,
-        # self.XX,
-        # self.BIT_z,
-        # self.AND_z,
-        # self.ROL_z,
-        # self.XX,
-        # self.PLP_im,
-        # self.AND_im,
-        # self.ROL_im,
-        # self.XX,
-        # self.BIT_a,
-        # self.AND_a,
-        # self.ROL_a,
-        # self.XX,
-
-        # /*3*/
-        # self.BMI_rel,
-        # self.AND_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.AND_zx,
-        # self.ROL_zx,
-        # self.XX,
-        # self.SEC_im,
-        # self.AND_ay,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.AND_ax,
-        # self.ROL_ax,
-        # self.XX,
-
-        # /*4*/
-        # self.RTI_im,
-        # self.EOR_ix,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.EOR_z,
-        # self.LSR_z,
-        # self.XX,
-        # self.PHA_im,
-        # self.EOR_im,
-        # self.LSR_im,
-        # self.XX,
-        # self.JMP_a,
-        # self.EOR_a,
-        # self.LSR_a,
-        # self.XX,
-
-        # /*5*/
-        # self.BVC_rel,
-        # self.EOR_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.EOR_zx,
-        # self.LSR_zx,
-        # self.XX,
-        # self.CLI_im,
-        # self.EOR_ay,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.EOR_ax,
-        # self.LSR_ax,
-        # self.XX,
-
-        # /*6*/
-        # self.RTS_im,
-        # self.ADC_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.ADC_z,
-        # self.ROR_z,
-        # self.XX,
-        # self.PLA_im,
-        # self.ADC_im,
-        # self.ROR_im,
-        # self.XX,
-        # self.JMP_i,
-        # self.ADC_a,
-        # self.ROR_a,
-        # self.XX,
-
-        # /*7*/
-        # self.BVS_rel,
-        # self.ADC_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.ADC_zx,
-        # self.ROR_zx,
-        # self.XX,
-        # self.SEI_im,
-        # self.ADC_ay,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.ADC_ax,
-        # self.ROR_ax,
-        # self.XX,
-
-        # /*8*/
-        # self.XX,
-        # self.STA_ix,
-        # self.XX,
-        # self.XX,
-        # self.STY_z,
-        # self.STA_z,
-        # self.STX_z,
-        # self.XX,
-        # self.DEY_im,
-        # self.XX,
-        # self.TXA_im,
-        # self.XX,
-        # self.STY_a,
-        # self.STA_a,
-        # self.STX_a,
-        # self.XX,
-
-        # /*9*/
-        # self.BCC_rel,
-        # self.STA_iy,
-        # self.XX,
-        # self.XX,
-        # self.STY_zx,
-        # self.STA_zx,
-        # self.STX_zy,
-        # self.XX,
-        # self.TYA_im,
-        # self.STA_ay,
-        # self.TXS_im,
-        # self.XX,
-        # self.XX,
-        # self.STA_ax,
-        # self.XX,
-        # self.XX,
-
-        # /*A*/
-        # self.LDY_im,
-        # self.LDA_ix,
-        # self.LDX_im,
-        # self.LAX_ix,
-        # self.LDY_z,
-        # self.LDA_z,
-        # self.LDX_z,
-        # self.LAX_z,
-        # self.TAY_im,
-        # self.LDA_im,
-        # self.TAX_im,
-        # self.XX,
-        # self.LDY_a,
-        # self.LDA_a,
-        # self.LDX_a,
-        # self.LAX_a,
-
-        # /*B*/
-        # self.BCS_rel,
-        # self.LDA_iy,
-        # self.XX,
-        # self.LAX_iy,
-        # self.LDY_zx,
-        # self.LDA_zx,
-        # self.LDX_zy,
-        # self.LAX_zy,
-        # self.CLV_im,
-        # self.LDA_ay,
-        # self.TSX_im,
-        # self.XX,
-        # self.LDY_ax,
-        # self.LDA_ax,
-        # self.LDX_ay,
-        # self.XX,
-
-        # /*C*/
-        # self.CPY_im,
-        # self.CMP_ix,
-        # self.XX,
-        # self.XX,
-        # self.CPY_z,
-        # self.CMP_z,
-        # self.DEC_z,
-        # self.XX,
-        # self.INY_im,
-        # self.CMP_im,
-        # self.DEX_im,
-        # self.XX,
-        # self.CPY_a,
-        # self.CMP_a,
-        # self.DEC_a,
-        # self.XX,
-
-        # /*D*/
-        # self.BNE_rel,
-        # self.CMP_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.CMP_zx,
-        # self.DEC_zx,
-        # self.XX,
-        # self.CLD_im,
-        # self.CMP_ay,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.CMP_ax,
-        # self.DEC_ax,
-        # self.XX,
-
-        # /*E*/
-        # self.CPX_im,
-        # self.SBC_ix,
-        # self.XX,
-        # self.XX,
-        # self.CPX_z,
-        # self.SBC_z,
-        # self.INC_z,
-        # self.XX,
-        # self.INX_im,
-        # self.SBC_im,
-        # self.NOP_im,
-        # self.XX,
-        # self.CPX_a,
-        # self.SBC_a,
-        # self.INC_a,
-        # self.XX,
-
-        # /*F*/
-        # self.BEQ_rel,
-        # self.SBC_iy,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.SBC_zx,
-        # self.INC_zx,
-        # self.XX,
-        # self.SED_im,
-        # self.SBC_ay,
-        # self.XX,
-        # self.XX,
-        # self.XX,
-        # self.SBC_ax,
-        # self.INC_ax,
-        # self.XX
-    ]
+        self.r.setFlag('Z', self.r.a == 0)
+        self.r.setFlag('N', self.r.a & 0x80)
+        self.r.setFlag('V', (
+                (v1 <= 127 and v2 <= 127 and self.r.a > 127) or
+                (v1 >= 128 and v2 >= 128 and self.r.a < 128)
+            )
+        )
+    
