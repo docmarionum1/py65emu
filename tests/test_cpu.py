@@ -229,6 +229,90 @@ class TestCPU(unittest.TestCase):
         c.ops[0xd0]()
         self.assertEqual(c.r.pc, 0x1002)
 
+    def test_cmp(self):
+        c = self._cpu(romInit=[0x0f, 0x10, 0x11, 0xfe, 0xff, 0x00, 0x7f])
+
+        c.r.a = 0x10
+        c.ops[0xc9]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xc9]()
+        self.assertTrue(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xc9]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertFalse(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('N'))
+
+        c.r.a = 0xff
+        c.ops[0xc9]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xc9]()
+        self.assertTrue(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xc9]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('N'))
+        c.ops[0xc9]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('N'))
+
+    def test_cpx(self):
+        c = self._cpu(romInit=[0x0f, 0x10, 0x11])
+
+        c.r.x = 0x10
+        c.ops[0xe0]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xe0]()
+        self.assertTrue(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xe0]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertFalse(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('N'))
+
+    def test_cpy(self):
+        c = self._cpu(romInit=[0x0f, 0x10, 0x11])
+
+        c.r.y = 0x10
+        c.ops[0xc0]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xc0]()
+        self.assertTrue(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('N'))
+        c.ops[0xc0]()
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertFalse(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('N'))
+
+    def test_dec(self):
+        c = self._cpu(romInit=[0x00])
+        c.ops[0xc6]()
+        self.assertEqual(c.mmu.read(0x00), 0xff)
+
+    def test_dex(self):
+        c = self._cpu()
+        c.ops[0xca]()
+        self.assertEqual(c.r.x, 0xff)
+
+    def test_dey(self):
+        c = self._cpu()
+        c.ops[0x88]()
+        self.assertEqual(c.r.y, 0xff)
+
     def tearDown(self):
         pass
 

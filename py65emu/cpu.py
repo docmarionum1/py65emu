@@ -203,7 +203,7 @@ class CPU:
 
 
     # Operators
-     # All the operations.  For each operation have the name of the operation,
+    # All the operations.  For each operation have the name of the operation,
     # whether it acts on values, "v" or on addresses, "a" and a list of 4-tuples
     # containing the valid addressing modes for the operation, the 
     # base number of cycles it takes, the opcode, and a target register, if valid.
@@ -245,12 +245,44 @@ class CPU:
             ("VC", 2, 0x50, ("V", False)),
             ("VC", 2, 0x70, ("V", True)),
             ("CC", 2, 0x90, ("C", False)),
-            ("CS", 2, 0xB0, ("C", True)),
-            ("NE", 2, 0xD0, ("Z", False)),
-            ("EQ", 2, 0xF0, ("Z", True)),
+            ("CS", 2, 0xb0, ("C", True)),
+            ("NE", 2, 0xd0, ("Z", False)),
+            ("EQ", 2, 0xf0, ("Z", True))
         ]),
         ("BRK", "v", [
             ("im", 7, 0x00, 1)
+        ]),
+        ("CMP", "v", [
+            ("im", 2, 0xc9, None),
+            ("z",  3, 0xc5, None),
+            ("zx", 4, 0xd5, None),
+            ("a",  4, 0xcd, None),
+            ("ax", 4, 0xdd, None),
+            ("ay", 4, 0xd9, None),
+            ("ix", 6, 0xc1, None),
+            ("iy", 5, 0xd1, None)
+        ]),
+        ("CPX", "v", [
+            ("im", 2, 0xe0, None),
+            ("z",  3, 0xe4, None),
+            ("a",  4, 0xec, None)
+        ]),
+        ("CPY", "v", [
+            ("im", 2, 0xc0, None),
+            ("z",  3, 0xc4, None),
+            ("a",  4, 0xcc, None)
+        ]),
+        ("DEC", "a", [
+            ("z",  5, 0xc6, None),
+            ("zx", 6, 0xd6, None),
+            ("a",  6, 0xce, None),
+            ("ax", 7, 0xde, None)
+        ]),
+        ("DEX", "a", [
+            ("im", 2, 0xca, 1)
+        ]),
+        ("DEY", "a", [
+            ("im", 2, 0x88, 1)
         ]),
     ]
 
@@ -341,3 +373,31 @@ class CPU:
         self.stackPush(self.r.p)
         self.r.clearFlag('I')
         self.r.pc = self.interruptAddress('BRK')
+
+    def CP(self, r, v):
+        o = (r-v) & 0xff
+        self.r.setFlag('Z', o == 0)
+        self.r.setFlag('C', v <= r)
+        self.r.setFlag('N', o & 0x80)
+
+    def CMP(self, v):
+        self.CP(self.r.a, v)
+
+    def CPX(self, v):
+        self.CP(self.r.x, v)
+
+    def CPY(self, v):
+        self.CP(self.r.y, v)
+
+    def DEC(self, a):
+        v = (self.mmu.read(a)-1) & 0xff
+        self.mmu.write(a, v)
+        self.r.ZN(v)
+
+    def DEX(self, _):
+        self.r.x = (self.r.x-1) & 0xff
+        self.r.ZN(self.r.x)
+
+    def DEY(self, _):  
+        self.r.y = (self.r.y-1) & 0xff
+        self.r.ZN(self.r.y)
