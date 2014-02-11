@@ -15,7 +15,7 @@ from py65emu.mmu import MMU
 
 class TestCPU(unittest.TestCase):
 
-    def _cpu(self, ram=(0,0x100, False), rom=(0x1000, 0x100), romInit=None, pc=0x1000):
+    def _cpu(self, ram=(0,0x200, False), rom=(0x1000, 0x100), romInit=None, pc=0x1000):
         return CPU(
             MMU([
                 ram,
@@ -40,6 +40,14 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.toBCD(5), 0x05)
         self.assertEqual(c.toBCD(11), 0x11)
         self.assertEqual(c.toBCD(99), 0x99)
+
+    def test_fromTwosCom(self):
+        c = self._cpu()
+        self.assertEqual(c.fromTwosCom(0x00), 0)
+        self.assertEqual(c.fromTwosCom(0x01), 1)
+        self.assertEqual(c.fromTwosCom(0x7f), 127)
+        self.assertEqual(c.fromTwosCom(0xff), -1)
+        self.assertEqual(c.fromTwosCom(0x80), -128)
         
     def test_nextByte(self):
         c = self._cpu(romInit=[1, 2, 3])
@@ -107,6 +115,19 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.ix_a(), 0x00e0)
         c.r.y = 0x0f
         self.assertEqual(c.iy_a(), 0x00df)
+
+    def test_stack(self):
+        c = self._cpu()
+        c.stackPush(0x10)
+        self.assertEqual(c.stackPop(), 0x10)
+        c.stackPushWord(0x0510)
+        self.assertEqual(c.stackPopWord(), 0x0510)
+        self.assertEqual(c.stackPop(), 0x00)
+        c.stackPush(0x00)
+        c.stackPushWord(0x0510)
+        self.assertEqual(c.stackPop(), 0x10)
+        self.assertEqual(c.stackPop(), 0x05)
+
 
     def test_adc(self):
         c = self._cpu(romInit=[1, 2, 250, 3, 100, 100])
@@ -184,6 +205,29 @@ class TestCPU(unittest.TestCase):
         self.assertTrue(c.r.getFlag('Z'))
         self.assertFalse(c.r.getFlag('N'))
         self.assertFalse(c.r.getFlag('V'))
+
+    def test_brk(self):
+        c = self._cpu()
+        c.mmu.addBlock(0xfffe, 0x2, True, [0x34, 0x12])
+        c.r.p = 239
+        c.ops[0x00]()
+        self.assertTrue(c.r.getFlag('B'))
+        self.assertFalse(c.r.getFlag('I'))
+        self.assertEqual(c.r.pc, 0x1234)
+        self.assertEqual(c.stackPop(), 255)
+        self.assertEqual(c.stackPopWord(), 0x1001)
+
+    def test_branching(self):
+        c = self._cpu(romInit=[0x01, 0x00, 0x00, 0xfc])
+        c.ops[0x10]()
+        self.assertEqual(c.r.pc, 0x1002)
+        c.ops[0x70]()
+        self.assertEqual(c.r.pc, 0x1003)
+        c.r.setFlag('C')
+        c.ops[0xb0]()
+        self.assertEqual(c.r.pc, 0x1000)
+        c.ops[0xd0]()
+        self.assertEqual(c.r.pc, 0x1002)
 
     def tearDown(self):
         pass

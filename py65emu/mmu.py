@@ -95,3 +95,6 @@ class MMU:
         b = self.getBlock(addr)
         i = self.getIndex(b, addr)
         return b['memory'][i]
+
+    def readWord(self, addr):
+        return (self.read(addr+1) << 8) + self.read(addr)
