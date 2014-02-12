@@ -209,86 +209,181 @@ class CPU:
     # base number of cycles it takes, the opcode, and a target register, if valid.
     _ops = [
         ("ADC", "v", [
-            ("im", 2, 0x69, None),
-            ("z",  3, 0x65, None),
-            ("zx", 4, 0x75, None),
-            ("a",  4, 0x6d, None),
-            ("ax", 4, 0x7d, None),
-            ("ay", 4, 0x79, None),
-            ("ix", 6, 0x61, None),
-            ("iy", 5, 0x71, None)
+            ("im", 2, [0x69], None),
+            ("z",  3, [0x65], None),
+            ("zx", 4, [0x75], None),
+            ("a",  4, [0x6d], None),
+            ("ax", 4, [0x7d], None),
+            ("ay", 4, [0x79], None),
+            ("ix", 6, [0x61], None),
+            ("iy", 5, [0x71], None)
         ]),
         ("AND", "v", [
-            ("im", 2, 0x29, None),
-            ("z",  3, 0x25, None),
-            ("zx", 4, 0x35, None),
-            ("a",  4, 0x2d, None),
-            ("ax", 4, 0x3d, None),
-            ("ay", 4, 0x39, None),
-            ("ix", 6, 0x21, None),
-            ("iy", 5, 0x31, None)
+            ("im", 2, [0x29], None),
+            ("z",  3, [0x25], None),
+            ("zx", 4, [0x35], None),
+            ("a",  4, [0x2d], None),
+            ("ax", 4, [0x3d], None),
+            ("ay", 4, [0x39], None),
+            ("ix", 6, [0x21], None),
+            ("iy", 5, [0x31], None)
         ]),
         ("ASL", "a", [
-            ("im", 2, 0x0a, "a"),
-            ("z",  5, 0x06, None),
-            ("zx", 6, 0x16, None),
-            ("a",  6, 0x0e, None),
-            ("ax", 7, 0x1e, None)
-        ]),
-        ("BIT", "v", [
-            ("z",  3, 0x24, None),
-            ("a",  4, 0x2c, None)
+            ("im", 2, [0x0a], "a"),
+            ("z",  5, [0x06], None),
+            ("zx", 6, [0x16], None),
+            ("a",  6, [0x0e], None),
+            ("ax", 7, [0x1e], None)
         ]),
         ("B", "v", [
-            ("PL", 2, 0x10, ("N", False)),
-            ("MI", 2, 0x30, ("N", True)),
-            ("VC", 2, 0x50, ("V", False)),
-            ("VC", 2, 0x70, ("V", True)),
-            ("CC", 2, 0x90, ("C", False)),
-            ("CS", 2, 0xb0, ("C", True)),
-            ("NE", 2, 0xd0, ("Z", False)),
-            ("EQ", 2, 0xf0, ("Z", True))
+            ("PL", 2, [0x10], ("N", False)),
+            ("MI", 2, [0x30], ("N", True)),
+            ("VC", 2, [0x50], ("V", False)),
+            ("VC", 2, [0x70], ("V", True)),
+            ("CC", 2, [0x90], ("C", False)),
+            ("CS", 2, [0xb0], ("C", True)),
+            ("NE", 2, [0xd0], ("Z", False)),
+            ("EQ", 2, [0xf0], ("Z", True))
+        ]),
+        ("BIT", "v", [
+            ("z",  3, [0x24], None),
+            ("a",  4, [0x2c], None)
         ]),
         ("BRK", "v", [
-            ("im", 7, 0x00, 1)
+            ("im", 7, [0x00], 1)
         ]),
         ("CMP", "v", [
-            ("im", 2, 0xc9, None),
-            ("z",  3, 0xc5, None),
-            ("zx", 4, 0xd5, None),
-            ("a",  4, 0xcd, None),
-            ("ax", 4, 0xdd, None),
-            ("ay", 4, 0xd9, None),
-            ("ix", 6, 0xc1, None),
-            ("iy", 5, 0xd1, None)
+            ("im", 2, [0xc9], None),
+            ("z",  3, [0xc5], None),
+            ("zx", 4, [0xd5], None),
+            ("a",  4, [0xcd], None),
+            ("ax", 4, [0xdd], None),
+            ("ay", 4, [0xd9], None),
+            ("ix", 6, [0xc1], None),
+            ("iy", 5, [0xd1], None)
         ]),
         ("CPX", "v", [
-            ("im", 2, 0xe0, None),
-            ("z",  3, 0xe4, None),
-            ("a",  4, 0xec, None)
+            ("im", 2, [0xe0], None),
+            ("z",  3, [0xe4], None),
+            ("a",  4, [0xec], None)
         ]),
         ("CPY", "v", [
-            ("im", 2, 0xc0, None),
-            ("z",  3, 0xc4, None),
-            ("a",  4, 0xcc, None)
+            ("im", 2, [0xc0], None),
+            ("z",  3, [0xc4], None),
+            ("a",  4, [0xcc], None)
         ]),
         ("DEC", "a", [
-            ("z",  5, 0xc6, None),
-            ("zx", 6, 0xd6, None),
-            ("a",  6, 0xce, None),
-            ("ax", 7, 0xde, None)
+            ("z",  5, [0xc6], None),
+            ("zx", 6, [0xd6], None),
+            ("a",  6, [0xce], None),
+            ("ax", 7, [0xde], None)
         ]),
         ("DEX", "a", [
-            ("im", 2, 0xca, 1)
+            ("im", 2, [0xca], 1)
         ]),
         ("DEY", "a", [
-            ("im", 2, 0x88, 1)
+            ("im", 2, [0x88], 1)
         ]),
+        ("EOR", "v", [
+            ("im", 2, [0x49], None),
+            ("z",  3, [0x45], None),
+            ("zx", 4, [0x55], None),
+            ("a",  4, [0x4d], None),
+            ("ax", 4, [0x5d], None),
+            ("ay", 4, [0x59], None),
+            ("ix", 6, [0x41], None),
+            ("iy", 5, [0x51], None)
+        ]),
+        ("CL", "v", [
+            ("C", 2, [0x18], "C"),
+            ("I", 2, [0x58], "I"),
+            ("V", 2, [0xb8], "V"),
+            ("D", 2, [0xd8], "D")
+        ]),
+        ("SE", "v", [
+            ("C", 2, [0x38], "C"),
+            ("I", 2, [0x78], "I"),
+            ("D", 2, [0xf8], "D")
+        ]),
+        ("INC", "a", [
+            ("z",  5, [0xe6], None),
+            ("zx", 6, [0xf6], None),
+            ("a",  6, [0xee], None),
+            ("ax", 7, [0xfe], None)
+        ]),
+        ("INX", "a", [
+            ("im", 2, [0xe8], 1)
+        ]),
+        ("INY", "a", [
+            ("im", 2, [0xc8], 1)
+        ]),
+        ("JMP", "a", [
+            ("a", 3, [0x4c], None),
+            ("i", 5, [0x6c], None)
+        ]),
+        ("JSR", "a", [
+            ("a", 6, [0x20], None)
+        ]),
+        ("LDA", "v", [
+            ("im", 2, [0xa9], None),
+            ("z",  3, [0xa5], None),
+            ("zx", 4, [0xb5], None),
+            ("a",  4, [0xad], None),
+            ("ax", 4, [0xbd], None),
+            ("ay", 4, [0xb9], None),
+            ("ix", 6, [0xa1], None),
+            ("iy", 5, [0xb1], None)
+        ]),
+        ("LDX", "v", [
+            ("im", 2, [0xa2], None),
+            ("z",  3, [0xa6], None),
+            ("zy", 4, [0xb6], None),
+            ("a",  4, [0xae], None),
+            ("ay", 4, [0xbe], None)
+        ]),
+        ("LDY", "v", [
+            ("im", 2, [0xa0], None),
+            ("z",  3, [0xa4], None),
+            ("zx", 4, [0xb4], None),
+            ("a",  4, [0xac], None),
+            ("ax", 4, [0xbc], None)
+        ]),
+        ("LSR", "a", [
+            ("im", 2, [0x4a], "a"),
+            ("z",  5, [0x46], None),
+            ("zx", 6, [0x56], None),
+            ("a",  6, [0x4e], None),
+            ("ax", 7, [0x5e], None)
+        ]),
+        ("NOP", "v", [
+            # (imp)lied mode with opcode 0xea is the only documented
+            # NOP, the rest are illegal opcodes.
+            ("imp", 2, [0x1a, 0x3a, 0x5a, 0x7a, 0xda, 0xea, 0xfa], 1),
+            ("im", 2, [0x80, 0x82, 0x89, 0xc2, 0xe2], None),
+            ("z", 3, [0x04, 0x44, 0x64, ], None),
+            ("zx", 4, [0x14, 0x34, 0x54, 0x74, 0xd4, 0xf4], None)
+        ]),
+        ("ORA", "v", [
+            ("im", 2, [0x09], None),
+            ("z",  3, [0x05], None),
+            ("zx", 4, [0x15], None),
+            ("a",  4, [0x0d], None),
+            ("ax", 4, [0x1d], None),
+            ("ay", 4, [0x19], None),
+            ("ix", 6, [0x01], None),
+            ("iy", 5, [0x11], None)
+        ]),
+        ("T", "a", [
+            ("AX", 2, [0xaa], ('a', 'x')),
+            ("XA", 2, [0x8a], ('x', 'a')),
+            ("AY", 2, [0xa8], ('a', 'y')),
+            ("YA", 2, [0x98], ('y', 'a'))
+        ])
     ]
 
     def _create_ops(self):
 
-        def f(self, op_f, a_f):
+        def f(self, op_f, a_f, cc):
             op_f(a_f())
             self.cc += cc
 
@@ -296,6 +391,7 @@ class CPU:
             return target
 
         self.ops = [None]*0xff
+
         for op,atype,addrs in self._ops:
             op_f = getattr(self, op)
             for a,cc,opcode,target in addrs:
@@ -306,7 +402,11 @@ class CPU:
                 else:
                     a_f = getattr(self, "%s_a" % a)
 
-                self.ops[opcode] = functools.partial(f, self, op_f, a_f)
+                fp = functools.partial(f, self, op_f, a_f, cc)
+                for o in opcode:
+                    if self.ops[o]:
+                        raise Exception("Opcode %s already defined" % o)
+                    self.ops[o] = fp
 
 
     def ADC(self, v):
@@ -338,7 +438,7 @@ class CPU:
         self.r.ZN(self.r.a)
 
     def ASL(self, a):
-        if a == "a":
+        if a == 'a':
             v = self.r.a << 1
             self.r.a = v & 0xff
         else:
@@ -401,3 +501,77 @@ class CPU:
     def DEY(self, _):  
         self.r.y = (self.r.y-1) & 0xff
         self.r.ZN(self.r.y)
+
+    def EOR(self, v):
+        self.r.a = self.r.a ^ v
+        self.r.ZN(self.r.a)
+
+    """Flag Instructions."""
+    def SE(self, v):
+        """Set the flag to True."""
+        self.r.setFlag(v)
+
+    def CL(self, v):
+        """Clear the flag to False."""
+        self.r.clearFlag(v)
+
+    def INC(self, a):
+        v = (self.mmu.read(a)+1) & 0xff
+        self.mmu.write(a, v)
+        self.r.ZN(v)
+
+    def INX(self, _):
+        self.r.x = (self.r.x+1) & 0xff
+        self.r.ZN(self.r.x)
+
+    def INY(self, _):  
+        self.r.y = (self.r.y+1) & 0xff
+        self.r.ZN(self.r.y)
+
+    def JMP(self, a):
+        self.r.pc = a
+
+    def JSR(self, a):
+        self.stackPushWord(self.r.pc-1)
+        self.r.pc = a
+
+    def LDA(self, v):
+        self.r.a = v
+        self.r.ZN(self.r.a)
+
+    def LDX(self, v):
+        self.r.x = v
+        self.r.ZN(self.r.x)
+
+    def LDY(self, v):
+        self.r.y = v
+        self.r.ZN(self.r.y)
+
+    def LSR(self, a):
+        if a == 'a':
+            self.r.setFlag('C', self.r.a & 0x01)
+            self.r.a = v = self.r.a >> 1
+        else:
+            v = self.mmu.read(a)
+            self.r.setFlag('C', v & 0x01)
+            v = v >> 1
+            self.mmu.write(a, v)
+
+        self.r.ZN(v)
+
+    def NOP(self, _):
+        pass
+
+    def ORA(self, v):
+        self.r.a = self.r.a | v
+        self.r.ZN(self.r.a)
+
+    def T(self, a):
+        """
+        Transfer registers
+        a is a tuple with (source, destination) so TAX
+        would be T(('a', 'x'))self.
+        """
+        s, d = a
+        setattr(self.r, d, getattr(self.r, s))
+        self.r.ZN(getattr(self.r, d))

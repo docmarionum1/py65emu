@@ -313,8 +313,130 @@ class TestCPU(unittest.TestCase):
         c.ops[0x88]()
         self.assertEqual(c.r.y, 0xff)
 
+    def test_eor(self):
+        c = self._cpu(romInit=[0x0f, 0xf0, 0xff])
+
+        c.ops[0x49]()
+        self.assertEqual(c.r.a, 0x0f)
+        c.ops[0x49]()
+        self.assertEqual(c.r.a, 0xff)
+        c.ops[0x49]()
+        self.assertEqual(c.r.a, 0x00)
+
+    def test_flag_ops(self):
+        c = self._cpu()
+
+        c.ops[0x38]()
+        self.assertTrue(c.r.getFlag('C'))
+        c.ops[0x78]()
+        self.assertTrue(c.r.getFlag('I'))
+        c.ops[0xf8]()
+        self.assertTrue(c.r.getFlag('D'))
+
+        c.r.setFlag('V')
+
+        c.ops[0x18]()
+        self.assertFalse(c.r.getFlag('C'))
+        c.ops[0x58]()
+        self.assertFalse(c.r.getFlag('I'))
+        c.ops[0xb8]()
+        self.assertFalse(c.r.getFlag('V'))
+        c.ops[0xd8]()
+        self.assertFalse(c.r.getFlag('D'))
+
+    def test_inc(self):
+        c = self._cpu(romInit=[0x00])
+        c.ops[0xe6]()
+        self.assertEqual(c.mmu.read(0x00), 0x01)
+
+    def test_inx(self):
+        c = self._cpu()
+        c.ops[0xe8]()
+        self.assertEqual(c.r.x, 0x01)
+
+    def test_iny(self):
+        c = self._cpu()
+        c.ops[0xc8]()
+        self.assertEqual(c.r.y, 0x01)
+
+    def test_jmp(self):
+        c = self._cpu(romInit=[0x00, 0x10])
+
+        c.ops[0x4c]()
+        self.assertEqual(c.r.pc, 0x1000)
+
+        c.ops[0x6c]()
+        self.assertEqual(c.r.pc, 0x1000)
+
+    def test_jsr(self):
+        c = self._cpu(romInit=[0x00, 0x10])
+
+        c.ops[0x20]()
+        self.assertEqual(c.r.pc, 0x1000)
+        self.assertEqual(c.stackPopWord(), 0x1001)
+
+    def test_lda(self):
+        c = self._cpu(romInit=[0x01])
+        c.ops[0xa9]()
+        self.assertEqual(c.r.a, 0x01)
+
+    def test_ldx(self):
+        c = self._cpu(romInit=[0x01])
+        c.ops[0xa2]()
+        self.assertEqual(c.r.x, 0x01)
+
+    def test_ldy(self):
+        c = self._cpu(romInit=[0x01])
+        c.ops[0xa0]()
+        self.assertEqual(c.r.y, 0x01)
+
+    def test_lsr(self):
+        c = self._cpu(romInit=[0x00])
+
+        c.r.a = 0x02
+
+        c.ops[0x4a]()
+        self.assertEqual(c.r.a, 0x01)
+        self.assertFalse(c.r.getFlag('C'))
+
+        c.ops[0x4a]()
+        self.assertEqual(c.r.a, 0x00)
+        self.assertTrue(c.r.getFlag('C'))
+
+        c.mmu.write(0x00, 0x02)
+        c.ops[0x46]()
+        self.assertEqual(c.mmu.read(0x00), 0x01)
+
+    def test_ora(self):
+        c = self._cpu(romInit=[0x0f, 0xf0, 0xff])
+        c.ops[0x09]()
+        self.assertEqual(c.r.a, 0x0f)
+        c.ops[0x09]()
+        self.assertEqual(c.r.a, 0xff)
+        c.ops[0x09]()
+        self.assertEqual(c.r.a, 0xff)
+
     def tearDown(self):
         pass
+
+    def test_t(self):
+        c = self._cpu()
+
+        c.r.a = 0xf0
+        c.ops[0xaa]()
+        self.assertEqual(c.r.x, 0xf0)
+
+        c.r.x = 0x0f
+        c.ops[0x8a]()
+        self.assertEqual(c.r.a, 0x0f)
+
+        c.r.a = 0xff
+        c.ops[0xa8]()
+        self.assertEqual(c.r.y, 0xff)
+
+        c.r.y = 0x00
+        c.ops[0x98]()
+        self.assertEqual(c.r.a, 0x00)
 
 if __name__ == '__main__':
     unittest.main()
