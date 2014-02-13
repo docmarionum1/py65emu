@@ -416,8 +416,35 @@ class TestCPU(unittest.TestCase):
         c.ops[0x09]()
         self.assertEqual(c.r.a, 0xff)
 
-    def tearDown(self):
-        pass
+    def test_rol(self):
+        c = self._cpu(romInit=[0x00])
+
+        c.r.a = 0xff
+        c.ops[0x2a]()
+        self.assertEqual(c.r.a, 0xfe)
+        self.assertTrue(c.r.getFlag('C'))
+        c.ops[0x2a]()
+        self.assertEqual(c.r.a, 0xfd)
+        self.assertTrue(c.r.getFlag('C'))
+
+        c.ops[0x26]()
+        self.assertEqual(c.mmu.read(0x00), 0x01)
+        self.assertFalse(c.r.getFlag('C'))
+
+    def test_ror(self):
+        c = self._cpu(romInit=[0x00])
+
+        c.r.a = 0xff
+        c.ops[0x6a]()
+        self.assertEqual(c.r.a, 0x7f)
+        self.assertTrue(c.r.getFlag('C'))
+        c.ops[0x6a]()
+        self.assertEqual(c.r.a, 0xbf)
+        self.assertTrue(c.r.getFlag('C'))
+
+        c.ops[0x66]()
+        self.assertEqual(c.mmu.read(0x00), 0x80)
+        self.assertFalse(c.r.getFlag('C'))
 
     def test_t(self):
         c = self._cpu()
@@ -437,6 +464,31 @@ class TestCPU(unittest.TestCase):
         c.r.y = 0x00
         c.ops[0x98]()
         self.assertEqual(c.r.a, 0x00)
+
+    def test_rti(self):
+        c = self._cpu()
+
+        c.stackPushWord(0x1234)
+        c.stackPush(0xfd)
+
+        c.ops[0x40]()
+        self.assertEqual(c.r.pc, 0x1234)
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertTrue(c.r.getFlag('V'))
+        self.assertTrue(c.r.getFlag('B'))
+        self.assertTrue(c.r.getFlag('D'))
+        self.assertTrue(c.r.getFlag('I'))
+        self.assertFalse(c.r.getFlag('Z'))
+        self.assertTrue(c.r.getFlag('C'))
+
+    def test_rts(self):
+        c = self._cpu()
+        c.stackPushWord(0x1234)
+        c.ops[0x60]()
+        self.assertEqual(c.r.pc, 0x1235)
+
+    def tearDown(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

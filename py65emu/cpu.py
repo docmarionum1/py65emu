@@ -378,6 +378,26 @@ class CPU:
             ("XA", 2, [0x8a], ('x', 'a')),
             ("AY", 2, [0xa8], ('a', 'y')),
             ("YA", 2, [0x98], ('y', 'a'))
+        ]),
+        ("ROL", "a", [
+            ("im", 2, [0x2a], "a"),
+            ("z",  5, [0x26], None),
+            ("zx", 6, [0x36], None),
+            ("a",  6, [0x2e], None),
+            ("ax", 7, [0x3e], None)
+        ]),
+        ("ROR", "a", [
+            ("im", 2, [0x6a], "a"),
+            ("z",  5, [0x66], None),
+            ("zx", 6, [0x76], None),
+            ("a",  6, [0x6e], None),
+            ("ax", 7, [0x7e], None)
+        ]),
+        ("RTI", "a", [
+            ("im", 6, [0x40], 1)
+        ]),
+        ("RTS", "a", [
+            ("im", 6, [0x60], 1)
         ])
     ]
 
@@ -575,3 +595,34 @@ class CPU:
         s, d = a
         setattr(self.r, d, getattr(self.r, s))
         self.r.ZN(getattr(self.r, d))
+
+    def ROL(self, a):
+        if a == "a":
+            v_old = self.r.a
+            self.r.a = v_new = ((v_old << 1) + self.r.getFlag('C')) & 0xff
+        else:
+            v_old = self.mmu.read(a)
+            v_new = ((v_old << 1) + self.r.getFlag('C')) & 0xff
+            self.mmu.write(a, v_new)
+
+        self.r.setFlag('C', v_old & 0x80)
+        self.r.ZN(v_new)
+
+    def ROR(self, a):
+        if a == "a":
+            v_old = self.r.a
+            self.r.a = v_new = ((v_old >> 1) + self.r.getFlag('C')*0x80) & 0xff
+        else:
+            v_old = self.mmu.read(a)
+            v_new = ((v_old >> 1) + self.r.getFlag('C')*0x80) & 0xff
+            self.mmu.write(a, v_new)
+
+        self.r.setFlag('C', v_old & 0x01)
+        self.r.ZN(v_new)
+
+    def RTI(self, _):
+        self.r.p = self.stackPop()
+        self.r.pc = self.stackPopWord()
+
+    def RTS(self, _):
+        self.r.pc = (self.stackPopWord() + 1) & 0xffff
