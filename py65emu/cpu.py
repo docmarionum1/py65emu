@@ -24,7 +24,8 @@ class Registers:
             'Z': 2,     # Z - Zero
             'C': 1      # C - Carry
         }
-        self.p = 0          # Flag Pointer - N|V|0|B|D|I|Z|C
+
+        self.p = 0b00100000 # Flag Pointer - N|V|1|B|D|I|Z|C
 
     def getFlag(self, flag):
         return bool(self.p & self.flagBit[flag])
@@ -373,11 +374,19 @@ class CPU:
             ("ix", 6, [0x01], None),
             ("iy", 5, [0x11], None)
         ]),
+        ("P", "a", [
+            ("PHA", 3, [0x48], ("PH", "a")),
+            ("PLA", 4, [0x68], ("PL", "a")),
+            ("PHP", 3, [0x08], ("PH", "p")),
+            ("PLP", 4, [0x28], ("PL", "p")),
+        ]),
         ("T", "a", [
             ("AX", 2, [0xaa], ('a', 'x')),
             ("XA", 2, [0x8a], ('x', 'a')),
             ("AY", 2, [0xa8], ('a', 'y')),
-            ("YA", 2, [0x98], ('y', 'a'))
+            ("YA", 2, [0x98], ('y', 'a')),
+            ("XS", 2, [0x9a], ('x', 's')),
+            ("SX", 2, [0xba], ('s', 'x'))
         ]),
         ("ROL", "a", [
             ("im", 2, [0x2a], "a"),
@@ -398,7 +407,36 @@ class CPU:
         ]),
         ("RTS", "a", [
             ("im", 6, [0x60], 1)
-        ])
+        ]),
+        ("SBC", "v", [
+            ("im", 2, [0xe9], None),
+            ("z",  3, [0xe5], None),
+            ("zx", 4, [0xf5], None),
+            ("a",  4, [0xed], None),
+            ("ax", 4, [0xfd], None),
+            ("ay", 4, [0xf9], None),
+            ("ix", 6, [0xe1], None),
+            ("iy", 5, [0xf1], None)
+        ]),
+        ("STA", "a", [
+            ("z",  3, [0x85], None),
+            ("zx", 4, [0x95], None),
+            ("a",  4, [0x8d], None),
+            ("ax", 5, [0x9d], None),
+            ("ay", 5, [0x99], None),
+            ("ix", 6, [0x81], None),
+            ("iy", 6, [0x91], None)
+        ]),
+        ("STX", "a", [
+            ("z",  3, [0x86], None),
+            ("zy", 4, [0x96], None),
+            ("a",  4, [0x8e], None),
+        ]),
+        ("STY", "a", [
+            ("z",  3, [0x84], None),
+            ("zx", 4, [0x94], None),
+            ("a",  4, [0x8c], None)
+        ]),
     ]
 
     def _create_ops(self):
@@ -429,29 +467,24 @@ class CPU:
                     self.ops[o] = fp
 
 
-    def ADC(self, v):
+    def ADC(self, v2):
         v1 = self.r.a
-        v2 = v
 
         if self.r.getFlag('D'): #decimal mode
             d1 = self.fromBCD(v1)
             d2 = self.fromBCD(v2)
-
             r = d1 + d2 + self.r.getFlag('C')
             self.r.a = self.toBCD(r%100)
 
             self.r.setFlag('C', r > 99)
         else:
-            self.r.a = v1 + v2 + self.r.getFlag('C')
+            r = v1 + v2 + self.r.getFlag('C')
+            self.r.a = r & 0xff
 
-            self.r.setFlag('C', self.r.a > 0xff)
-            self.r.a = self.r.a & 0xff
+            self.r.setFlag('C', r > 0xff)
 
         self.r.ZN(self.r.a)
-        self.r.setFlag('V', (
-            (v1 <= 127 and v2 <= 127 and self.r.a > 127) or
-            (v1 >= 128 and v2 >= 128 and self.r.a < 128)
-        ))
+        self.r.setFlag('V', ((~(v1 ^ v2)) & (v1 ^ r) & 0x80))
 
     def AND(self, v):
         self.r.a = (self.r.a & v) & 0xff
@@ -586,15 +619,22 @@ class CPU:
         self.r.a = self.r.a | v
         self.r.ZN(self.r.a)
 
-    def T(self, a):
+    def P(self, v):
         """
-        Transfer registers
-        a is a tuple with (source, destination) so TAX
-        would be T(('a', 'x'))self.
+        Stack operations, PusH and PulL.  v is a tuple where the
+        first value is either PH or PL, specifying the action and
+        the second is the source or target register, either A or P, 
+        meaning the Accumulator or the Processor status flag.
         """
-        s, d = a
-        setattr(self.r, d, getattr(self.r, s))
-        self.r.ZN(getattr(self.r, d))
+        a, r = v
+
+        if a == "PH":
+            self.stackPush(getattr(self.r, r))
+        else:
+            setattr(self.r, r, self.stackPop())
+
+            if r == "a":
+                self.r.ZN(self.r.a)
 
     def ROL(self, a):
         if a == "a":
@@ -626,3 +666,37 @@ class CPU:
 
     def RTS(self, _):
         self.r.pc = (self.stackPopWord() + 1) & 0xffff
+
+    def SBC(self, v2):
+        v1 = self.r.a
+        if self.r.getFlag('D'):
+            d1 = self.fromBCD(v1)
+            d2 = self.fromBCD(v2)
+            r = d1 - d2 - (not self.r.getFlag('C'))
+            self.r.a = self.toBCD(r % 100)
+        else:
+            r = v1 - v2 - (not self.r.getFlag('C'))
+            self.r.a = r & 0xff
+
+        self.r.setFlag('C', r > 0)
+        self.r.setFlag('V', ((v1 ^ v2) & (v1 ^ r) & 0x80))
+        self.r.ZN(self.r.a)
+
+    def STA(self, a):
+        self.mmu.write(a, self.r.a)
+
+    def STX(self, a):
+        self.mmu.write(a, self.r.x)
+
+    def STY(self, a):
+        self.mmu.write(a, self.r.y)
+
+    def T(self, a):
+        """
+        Transfer registers
+        a is a tuple with (source, destination) so TAX
+        would be T(('a', 'x'))self.
+        """
+        s, d = a
+        setattr(self.r, d, getattr(self.r, s))
+        self.r.ZN(getattr(self.r, d))

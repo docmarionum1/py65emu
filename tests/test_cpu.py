@@ -416,6 +416,27 @@ class TestCPU(unittest.TestCase):
         c.ops[0x09]()
         self.assertEqual(c.r.a, 0xff)
 
+    def test_p(self):
+        c = self._cpu()
+
+        c.r.a = 0xcc
+        c.ops[0x48]()
+        self.assertEqual(c.stackPop(), 0xcc)
+
+        c.r.p = 0xff
+        c.ops[0x08]()
+        self.assertEqual(c.stackPop(), 0xff)
+
+        c.r.a = 0x00
+        c.stackPush(0xdd)
+        c.ops[0x68]()
+        self.assertEqual(c.r.a, 0xdd)
+
+        c.r.p = 0x20
+        c.stackPush(0xfd)
+        c.ops[0x28]()
+        self.assertEqual(c.r.p, 0xfd)
+
     def test_rol(self):
         c = self._cpu(romInit=[0x00])
 
@@ -446,24 +467,7 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.mmu.read(0x00), 0x80)
         self.assertFalse(c.r.getFlag('C'))
 
-    def test_t(self):
-        c = self._cpu()
 
-        c.r.a = 0xf0
-        c.ops[0xaa]()
-        self.assertEqual(c.r.x, 0xf0)
-
-        c.r.x = 0x0f
-        c.ops[0x8a]()
-        self.assertEqual(c.r.a, 0x0f)
-
-        c.r.a = 0xff
-        c.ops[0xa8]()
-        self.assertEqual(c.r.y, 0xff)
-
-        c.r.y = 0x00
-        c.ops[0x98]()
-        self.assertEqual(c.r.a, 0x00)
 
     def test_rti(self):
         c = self._cpu()
@@ -486,6 +490,134 @@ class TestCPU(unittest.TestCase):
         c.stackPushWord(0x1234)
         c.ops[0x60]()
         self.assertEqual(c.r.pc, 0x1235)
+
+    def test_sbc(self):
+        c = self._cpu(romInit=[
+            0x10, 0x01, 0x51, 0x80,
+            0x12, 0x13, 0x02, 0x21
+        ])
+
+        c.r.a = 0x15
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0x05)
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertFalse(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+        c.r.a = 0xff
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0xfe)
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+        c.r.a = 0x50
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0xff)
+        self.assertFalse(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+        c.r.a = 0x01
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0x81)
+        self.assertFalse(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('V'))
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+
+        #decimal mode test
+        c.r.setFlag('D')
+
+        c.r.a = 0x46
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0x34)
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertFalse(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+        c.r.a = 0x40
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0x27)
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertFalse(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+        c.r.a = 0x32
+        c.r.clearFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0x29)
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertFalse(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+        c.r.a = 0x12
+        c.r.setFlag('C')
+        c.ops[0xe9]()
+        self.assertEqual(c.r.a, 0x91)
+        self.assertFalse(c.r.getFlag('C'))
+        self.assertFalse(c.r.getFlag('V'))
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('Z'))
+
+    def test_sta(self):
+        c = self._cpu(romInit=[0x00])
+        c.r.a = 0xf0
+        c.ops[0x85]()
+        self.assertEqual(c.mmu.read(0x00), 0xf0)
+
+    def test_stx(self):
+        c = self._cpu(romInit=[0x00])
+        c.r.x = 0xf0
+        c.ops[0x86]()
+        self.assertEqual(c.mmu.read(0x00), 0xf0)
+
+    def test_sty(self):
+        c = self._cpu(romInit=[0x00])
+        c.r.y = 0xf0
+        c.ops[0x84]()
+        self.assertEqual(c.mmu.read(0x00), 0xf0)
+
+    def test_t(self):
+        c = self._cpu()
+
+        c.r.a = 0xf0
+        c.ops[0xaa]()
+        self.assertEqual(c.r.x, 0xf0)
+
+        c.r.x = 0x0f
+        c.ops[0x8a]()
+        self.assertEqual(c.r.a, 0x0f)
+
+        c.r.a = 0xff
+        c.ops[0xa8]()
+        self.assertEqual(c.r.y, 0xff)
+
+        c.r.y = 0x00
+        c.ops[0x98]()
+        self.assertEqual(c.r.a, 0x00)
+
+        c.r.x = 0xff
+        c.ops[0x9a]()
+        self.assertEqual(c.r.s, 0xff)
+
+        c.r.s = 0xf0
+        c.ops[0xba]()
+        self.assertEqual(c.r.x, 0xf0)
+
 
     def tearDown(self):
         pass
