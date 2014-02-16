@@ -99,22 +99,26 @@ class TestCPU(unittest.TestCase):
 
     def test_indirect_addressing(self):
         c = self._cpu(romInit=[
-            0x08, 0x10,
+            0x06, 0x10,
             0xff, 0x10,
-            0x00, 0x10,
-            0x0c, 0x10,
+            0x00,
+            0x00,
 
             0xf0, 0x00,
-            0xe0, 0x00,
-            0xd0, 0x00,
         ])
 
         self.assertEqual(c.i_a(), 0x00f0)
-        self.assertEqual(c.i_a(), 0x0800)
-        c.r.x = 0x0a
-        self.assertEqual(c.ix_a(), 0x00e0)
-        c.r.y = 0x0f
-        self.assertEqual(c.iy_a(), 0x00df)
+        self.assertEqual(c.i_a(), 0x0600)
+
+        c.r.y = 0x05
+        c.mmu.write(0x00, 0x21)
+        c.mmu.write(0x01, 0x43)
+        self.assertEqual(c.iy_a(), 0x4326)
+
+        c.r.x = 0x02
+        c.mmu.write(0x02, 0x34)
+        c.mmu.write(0x03, 0x12)
+        self.assertEqual(c.ix_a(), 0x1234)
 
     def test_stack(self):
         c = self._cpu()
@@ -617,6 +621,184 @@ class TestCPU(unittest.TestCase):
         c.r.s = 0xf0
         c.ops[0xba]()
         self.assertEqual(c.r.x, 0xf0)
+
+    def test_aac(self):
+        c = self._cpu(romInit=[0xff, 0xff, 0x01, 0x2])
+
+        c.r.a = 0x00
+        c.ops[0x0b]()
+        self.assertEqual(c.r.a, 0)
+        self.assertFalse(c.r.getFlag('N'))
+        self.assertFalse(c.r.getFlag('C'))
+
+        c.r.a = 0xff
+        c.ops[0x2b]()
+        self.assertEqual(c.r.a, 0xff)
+        self.assertTrue(c.r.getFlag('N'))
+        self.assertTrue(c.r.getFlag('C'))
+
+    def test_aax(self):
+        c = self._cpu(romInit=[0x00, 0x00])
+
+        c.r.a = 0xf0
+        c.r.x = 0xf0
+        c.ops[0x87]()
+        self.assertEqual(c.mmu.read(0x00), 0xf0)
+
+    def test_arr(self):
+        c = self._cpu(romInit=[0x80])
+
+        c.r.a = 0xff
+        c.r.setFlag('C')
+        c.ops[0x6b]()
+        self.assertEqual(c.r.a, 0xc0)
+        self.assertTrue(c.r.getFlag('C'))
+        self.assertTrue(c.r.getFlag('V'))
+
+    def test_asr(self):
+        c = self._cpu(romInit=[0x80])
+
+        c.r.a = 0xff
+        c.r.setFlag('C')
+        c.ops[0x4b]()
+        self.assertEqual(c.r.a, 0x40)
+
+    def test_atx(self):
+        c = self._cpu(romInit=[0xf8])
+
+        c.r.a = 0x1f
+        c.ops[0xab]()
+        self.assertEqual(c.r.x, 0x18)
+
+    def test_axa(self):
+        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+
+        c.r.a = c.r.x = 0xff
+        c.r.y = 0x01
+        c.ops[0x9f]()
+
+        self.assertEqual(c.mmu.read(0x200), 0x02)
+
+    def test_axs(self):
+        c = self._cpu(romInit=[0x02])
+
+        c.r.a = 0xf0
+        c.r.x = 0x0f
+        c.ops[0xcb]()
+        self.assertEqual(c.r.x, 0xfe)
+
+    def test_dcp(self):
+        c = self._cpu(romInit=[0x01])
+        c.r.a = 0xff
+        c.ops[0xc7]()
+        self.assertEqual(c.mmu.read(0x01), 0xff)
+        self.assertTrue(c.r.getFlag('Z'))
+
+    def test_isc(self):
+        c = self._cpu(romInit=[0x01])
+        c.r.a = 0xff
+        c.r.setFlag('C')
+        c.ops[0xe7]()
+        self.assertEqual(c.mmu.read(0x01), 0x01)
+        self.assertEqual(c.r.a, 0xfe)
+
+    def test_kil(self):
+        c = self._cpu()
+        c.ops[0x02]()
+        self.assertFalse(c.running)
+
+    def test_lar(self):
+        c = self._cpu(romInit=[0x01, 0x00])
+        c.r.y = 0x01
+        c.mmu.write(0x02, 0xf0)
+
+        c.ops[0xbb]()
+        self.assertEqual(c.r.a, 0xf0)
+        self.assertEqual(c.r.x, 0xf0)
+        self.assertEqual(c.r.s, 0xf0)
+
+    def test_lax(self):
+        c = self._cpu(romInit=[0x01])
+        c.mmu.write(0x01, 0xf0)
+        c.ops[0xa7]()
+        self.assertEqual(c.r.a, 0xf0)
+        self.assertEqual(c.r.x, 0xf0)
+
+    def test_rla(self):
+        c = self._cpu(romInit=[0x01])
+        c.mmu.write(0x01, 0x01)
+        c.r.a = 0x06
+        c.r.setFlag('C')
+        c.ops[0x27]()
+        self.assertEqual(c.mmu.read(0x01), 0x03)
+        self.assertEqual(c.r.a, 0x02)
+
+    def test_rra(self):
+        c = self._cpu(romInit=[0x01])
+        c.mmu.write(0x01, 0x01)
+        c.r.a = 0x06
+        c.r.setFlag('C')
+        c.ops[0x67]()
+        self.assertEqual(c.mmu.read(0x01), 0x80)
+        self.assertEqual(c.r.a, 0x87)
+
+    def test_slo(self):
+        c = self._cpu(romInit=[0x01])
+        c.mmu.write(0x01, 0x01)
+        c.r.a = 0x06
+        c.r.setFlag('C')
+        c.ops[0x07]()
+        self.assertEqual(c.mmu.read(0x01), 0x02)
+        self.assertEqual(c.r.a, 0x06)
+
+    def test_rra(self):
+        c = self._cpu(romInit=[0x01])
+        c.mmu.write(0x01, 0x02)
+        c.r.a = 0x06
+        c.r.setFlag('C')
+        c.ops[0x47]()
+        self.assertEqual(c.mmu.read(0x01), 0x01)
+        self.assertEqual(c.r.a, 0x07)
+
+    def test_sxa(self):
+        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+
+        c.r.x = 0xff
+        c.r.y = 0x01
+        c.ops[0x9e]()
+
+        self.assertEqual(c.mmu.read(0x200), 0x02)
+
+    def test_sya(self):
+        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+
+        c.r.y = 0xff
+        c.r.x = 0x01
+        c.ops[0x9c]()
+
+        self.assertEqual(c.mmu.read(0x200), 0x02)
+
+    def test_xaa(self):
+        c = self._cpu(romInit=[0xff])
+
+        c.r.a = 0b11111110
+        c.r.x = 0b11101111
+
+        c.ops[0x8b]()
+
+        self.assertEqual(c.r.a, 0b11101110)
+
+    def test_xas(self):
+        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+
+        c.r.x = 0xfe
+        c.r.a = 0x7f
+
+        c.r.y = 0x01
+        c.ops[0x9b]()
+
+        self.assertEqual(c.r.s, 0x7e)
+        self.assertEqual(c.mmu.read(0x100), 0x02)
 
 
     def tearDown(self):

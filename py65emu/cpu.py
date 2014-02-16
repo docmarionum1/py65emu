@@ -53,14 +53,26 @@ class Registers:
 
 class CPU:
     
-    def __init__(self, mmu=None, pc=None, stack_page=0x1):
+    def __init__(self, mmu=None, pc=None, stack_page=0x1, magic=0xee):
+        """
+        Parameters
+        ----------
+        mmu: An instance of MMU
+        pc: The starting address of the pc (program counter)
+        stack_page: The index of the page which contains the stack.  The default for
+            a 6502 is page 1 (the stack from 0x0100-0x1ff) but in some varients the
+            stack page may be elsewhere.
+        magic: A value needed for on of the illegal opcodes, XAA.  This value differs
+            between different versions, even of the same CPU.  The default is 0xee.
+        """
         self.mmu = mmu
         self.r = Registers()
         self.cc = 0
         # Which page the stack is in.  0x1 means that the stack is from 
         # 0x100-0x1ff.  In the 6502 this is always true but it's different
         # for other 65* varients. 
-        self.stack_page = stack_page 
+        self.stack_page = stack_page
+        self.magic = magic 
         self.reset()
 
         if pc:
@@ -70,14 +82,12 @@ class CPU:
             pass
 
         self._create_ops()
-
-
-
-
         
     def reset(self):
         self.r.reset()
         self.mmu.reset()
+
+        self.running = True
 
     def execute(self, instruction):
         """
@@ -153,7 +163,7 @@ class CPU:
         if math.floor(o/0xff) != math.floor(a/0xff):
             self.cc += 1
 
-        return a
+        return a & 0xffff
 
     def ay_a(self):
         o = self.nextWord()
@@ -161,7 +171,7 @@ class CPU:
         if math.floor(o/0xff) != math.floor(a/0xff):
             self.cc += 1
 
-        return a
+        return a & 0xffff
 
     def i_a(self):
         """Only used by indirect JMP"""
@@ -173,21 +183,21 @@ class CPU:
         else:
             j = i + 1
 
-        return (self.mmu.read(j) << 8) + self.mmu.read(i)
+        return ((self.mmu.read(j) << 8) + self.mmu.read(i)) & 0xffff
 
     def ix_a(self):
-        i = self.nextWord() + self.r.x
-        return (self.mmu.read(i + 1) << 8) + self.mmu.read(i)
+        i = self.nextByte() + self.r.x
+        return ((self.mmu.read(i + 1) << 8) + self.mmu.read(i)) & 0xffff
 
     def iy_a(self):
-        i = self.nextWord()
+        i = self.nextByte()
         o = (self.mmu.read(i + 1) << 8) + self.mmu.read(i)
         a = o + self.r.y
 
         if math.floor(o/0xff) != math.floor(a/0xff):
             self.cc += 1
 
-        return a
+        return a & 0xffff
 
 
     # Return values based on the addressing mode
@@ -359,10 +369,12 @@ class CPU:
         ("NOP", "v", [
             # (imp)lied mode with opcode 0xea is the only documented
             # NOP, the rest are illegal opcodes.
-            ("imp", 2, [0x1a, 0x3a, 0x5a, 0x7a, 0xda, 0xea, 0xfa], 1),
+            ("ip", 2, [0x1a, 0x3a, 0x5a, 0x7a, 0xda, 0xea, 0xfa], 1),
             ("im", 2, [0x80, 0x82, 0x89, 0xc2, 0xe2], None),
-            ("z", 3, [0x04, 0x44, 0x64, ], None),
-            ("zx", 4, [0x14, 0x34, 0x54, 0x74, 0xd4, 0xf4], None)
+            ("z",  3, [0x04, 0x44, 0x64, ], None),
+            ("zx", 4, [0x14, 0x34, 0x54, 0x74, 0xd4, 0xf4], None),
+            ("a",  4, [0x0c], None),
+            ("ax", 4, [0x1c, 0x3c, 0x5c, 0x7c, 0xdc, 0xfc], None)
         ]),
         ("ORA", "v", [
             ("im", 2, [0x09], None),
@@ -409,7 +421,7 @@ class CPU:
             ("im", 6, [0x60], 1)
         ]),
         ("SBC", "v", [
-            ("im", 2, [0xe9], None),
+            ("im", 2, [0xe9, 0xeb], None),
             ("z",  3, [0xe5], None),
             ("zx", 4, [0xf5], None),
             ("a",  4, [0xed], None),
@@ -437,6 +449,113 @@ class CPU:
             ("zx", 4, [0x94], None),
             ("a",  4, [0x8c], None)
         ]),
+        #***Ilegal Opcodes***
+        ("AAC", "v", [
+            ("im", 2, [0x0b, 0x2b], None)
+        ]),
+        ("AAX", "a", [
+            ("z",  3, [0x87], None),
+            ("zy", 4, [0x97], None),
+            ("a",  4, [0x8f], None),
+            ("ix", 6, [0x83], None),
+        ]),
+        ("ARR", "v", [
+            ("im", 2, [0x6b], None)
+        ]),
+        ("ASR", "v", [
+            ("im", 2, [0x4b], None)
+        ]), 
+        ("ATX", "v", [
+            ("im", 2, [0xab], None)
+        ]), 
+        ("AXA", "a", [
+            ("ay", 5, [0x9f], None),
+            ("iy", 6, [0x93], None)
+        ]),
+        ("AXS", "v", [
+            ("im", 2, [0xcb], None)
+        ]),
+        ("DCP", "a", [
+            ("z",  5, [0xc7], None),
+            ("zx", 6, [0xd7], None),
+            ("a",  6, [0xcf], None),
+            ("ax", 7, [0xdf], None),
+            ("ay", 7, [0xdb], None),
+            ("ix", 8, [0xc3], None),
+            ("iy", 8, [0xd3], None)
+        ]),
+        ("ISC", "a", [
+            ("z",  5, [0xe7], None),
+            ("zx", 6, [0xf7], None),
+            ("a",  6, [0xef], None),
+            ("ax", 7, [0xff], None),
+            ("ay", 7, [0xfb], None),
+            ("ix", 8, [0xe3], None),
+            ("iy", 8, [0xf3], None)
+        ]),
+        ("KIL", "v", [
+            ("im", 0, [0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 
+                       0x62, 0x72, 0x92, 0xb2, 0xd2, 0xf2], 1)
+        ]),
+        ("LAR", "v", [
+            ("ay", 4, [0xbb], None)
+        ]),
+        ("LAX", "v", [
+            ("z",  3, [0xa7], None),
+            ("zy", 4, [0xb7], None),
+            ("a",  4, [0xaf], None),
+            ("ay", 4, [0xbf], None),
+            ("ix", 6, [0xa3], None),
+            ("iy", 5, [0xb3], None)
+        ]),
+        ("RLA", "a", [
+            ("z",  5, [0x27], None),
+            ("zx", 6, [0x37], None),
+            ("a",  6, [0x2f], None),
+            ("ax", 7, [0x3f], None),
+            ("ay", 7, [0x3b], None),
+            ("ix", 8, [0x23], None),
+            ("iy", 8, [0x33], None)
+        ]),
+        ("RRA", "a", [
+            ("z",  5, [0x67], None),
+            ("zx", 6, [0x77], None),
+            ("a",  6, [0x6f], None),
+            ("ax", 7, [0x7f], None),
+            ("ay", 7, [0x7b], None),
+            ("ix", 8, [0x63], None),
+            ("iy", 8, [0x73], None)
+        ]),
+        ("SLO", "a", [
+            ("z",  5, [0x07], None),
+            ("zx", 6, [0x17], None),
+            ("a",  6, [0x0f], None),
+            ("ax", 7, [0x1f], None),
+            ("ay", 7, [0x1b], None),
+            ("ix", 8, [0x03], None),
+            ("iy", 8, [0x13], None)
+        ]),
+        ("SRE", "a", [
+            ("z",  5, [0x47], None),
+            ("zx", 6, [0x57], None),
+            ("a",  6, [0x4f], None),
+            ("ax", 7, [0x5f], None),
+            ("ay", 7, [0x5b], None),
+            ("ix", 8, [0x43], None),
+            ("iy", 8, [0x53], None)
+        ]),
+        ("SXA", "a", [
+            ("ay", 5, [0x9e], None)
+        ]),
+        ("SYA", "a", [
+            ("ax", 5, [0x9c], None)
+        ]),
+        ("XAA", "v", [
+            ("im", 2, [0x8b], None)
+        ]),
+        ("XAS", "a", [
+            ("ay", 5, [0x9b], None)
+        ])
     ]
 
     def _create_ops(self):
@@ -448,7 +567,7 @@ class CPU:
         def f_target(target):
             return target
 
-        self.ops = [None]*0xff
+        self.ops = [None]*0x100
 
         for op,atype,addrs in self._ops:
             op_f = getattr(self, op)
@@ -463,7 +582,7 @@ class CPU:
                 fp = functools.partial(f, self, op_f, a_f, cc)
                 for o in opcode:
                     if self.ops[o]:
-                        raise Exception("Opcode %s already defined" % o)
+                        raise Exception("Opcode %s already defined" % hex(o))
                     self.ops[o] = fp
 
 
@@ -700,3 +819,161 @@ class CPU:
         s, d = a
         setattr(self.r, d, getattr(self.r, s))
         self.r.ZN(getattr(self.r, d))
+
+
+    """
+    Illegal Opcodes
+    ---------------
+
+    Opcodes which were not officially documented but still have
+    and effect.  The behavior for each of these is based on the following:
+
+    -http://www.ataripreservation.org/websites/freddy.offenga/illopc31.txt
+    -http://wiki.nesdev.com/w/index.php/Programming_with_unofficial_opcodes
+    -www.ffd2.com/fridge/docs/6502-NMOS.extra.opcodes
+
+    The behavior is not consistent across the various resources so I don't
+    promise 100% hardware accuracy here.
+
+    Other names for the opcode are in comments on the function defintion
+    line.
+    """
+
+    def AAC(self, v): #ANC
+        self.AND(v)
+        self.r.setFlag('C', self.r.getFlag('N'))
+
+    def AAX(self, a): #SAX, AXS
+        r = self.r.a & self.r.x
+        self.mmu.write(a, r)
+
+        #self.r.ZN(r) #There is conflicting information whether this effects P.
+
+    def ARR(self, v):
+        self.AND(v)
+        self.ROR('a')
+        self.r.setFlag('C', self.r.a & 0x40)
+        self.r.setFlag('V', bool(self.r.a & 0x40) ^ bool(self.r.a & 0x20))
+
+    def ASR(self, v): #ALR
+        self.AND(v)
+        self.LSR('a')
+
+    def ATX(self, v): #LXA, OAL
+        self.AND(v)
+        self.T(('a', 'x'))
+
+    def AXA(self, a): #SHA
+        """
+        There are a few illegal opcodes which and the high
+        bit of the address with registers and write the values
+        back into that address.  These operations are
+        particularly screwy.  These posts are used as reference
+        but I am unsure whether they are correct.
+        - forums.nesdev.com/viewtopic.php?f=3&t=3831&start=30#p113343
+        - forums.nesdev.com/viewtopic.php?f=3&t=10698
+        """
+        o = (a - self.r.y) & 0xffff
+        low = o & 0xff
+        high = o >> 8
+        if low + self.r.y > 0xff: #crossed page
+            a = ((high & self.r.x) << 8) + low + self.r.y
+        else:
+            a = (high << 8) + low + self.r.y
+
+        v = self.r.a & self.r.x & (high + 1)
+        self.mmu.write(a, v)
+
+    def AXS(self, v): #SBX, SAX
+        o = self.r.a & self.r.x
+        self.r.x = (o - v) & 0xff
+
+        self.r.setFlag('C', v <= o)
+        self.r.ZN(self.r.x)
+
+    def DCP(self, a): #DCM
+        self.DEC(a)
+        self.CMP(self.mmu.read(a))
+
+    def ISC(self, a): #ISB, INS
+        self.INC(a)
+        self.SBC(self.mmu.read(a))
+
+    def KIL(self, _): #JAM, HLT
+        self.running = False
+
+    def LAR(self, v): #LAE, LAS
+        self.r.a = self.r.x = self.r.s = self.r.s & v
+        self.r.ZN(self.r.a)
+
+    def LAX(self, v):
+        self.r.a = self.r.x = v
+        self.r.ZN(self.r.a)
+
+    def RLA(self, a):
+        self.ROL(a)
+        self.AND(self.mmu.read(a))
+
+    def RRA(self, a):
+        self.ROR(a)
+        self.ADC(self.mmu.read(a))
+
+    def SLO(self, a): #ASO
+        self.ASL(a)
+        self.ORA(self.mmu.read(a))
+
+    def SRE(self, a): #LSE
+        self.LSR(a)
+        self.EOR(self.mmu.read(a))
+
+    def SXA(self, a): #SHX, XAS
+        # See AXA
+        o = (a - self.r.y) & 0xffff
+        low = o & 0xff
+        high = o >> 8
+        if low + self.r.y > 0xff: #crossed page
+            a = ((high & self.r.x) << 8) + low + self.r.y
+        else:
+            a = (high << 8) + low + self.r.y
+
+        v = self.r.x & (high + 1)
+        self.mmu.write(a, v)
+
+    def SYA(self, a): #SHY, SAY
+        # See AXA
+        o = (a - self.r.x) & 0xffff
+        low = o & 0xff
+        high = o >> 8
+        if low + self.r.x > 0xff: #crossed page
+            a = ((high & self.r.y) << 8) + low + self.r.x
+        else:
+            a = (high << 8) + low + self.r.x
+
+        v = self.r.y & (high + 1)
+        self.mmu.write(a, v)
+
+    def XAA(self, v): #ANE
+        """
+        Another very wonky operation.  It's fully described here:
+        http://visual6502.org/wiki/index.php?title=6502_Opcode_8B_%28XAA,_ANE%29
+        "magic" varies by version of the processor.  0xee seems to be common.
+        The formula is: A = (A | magic) & X & imm
+        """
+        self.r.a = (self.r.a | self.magic) & self.r.x & v
+        self.r.ZN(self.r.a)
+
+    def XAS(self, a): #SHS, TAS
+        #First set the stack pointer's value
+        self.r.s = self.r.a & self.r.x
+
+        #Then write to memory using the new value of the stack pointer
+        o = (a - self.r.y) & 0xffff
+        low = o & 0xff
+        high = o >> 8
+        if low + self.r.y > 0xff: #crossed page
+            a = ((high & self.r.s) << 8) + low + self.r.y
+        else:
+            a = (high << 8) + low + self.r.y
+
+        v = self.r.s & (high + 1)
+        self.mmu.write(a, v)
