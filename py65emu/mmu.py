@@ -11,7 +11,7 @@ class MMU:
     def __init__(self, blocks):
         """
         Initialize the MMU with the blocks specified in blocks.  blocks
-        is a list of 3-tuples, (start, length, readonly, value).
+        is a list of 3-tuples, (start, length, readonly, value, valueStart).
 
         """
 
@@ -31,7 +31,7 @@ class MMU:
             if not b['readonly']:
                 b['memory'] = array.array('B', [0]*b['length'])
 
-    def addBlock(self, start, length, readonly=False, value=None):
+    def addBlock(self, start, length, readonly=False, value=None, romOffset=0):
         """
         Add a block of memory to the list of blocks with the given start address
         length. whether it is readonly or not and the starting value as either
@@ -55,7 +55,13 @@ class MMU:
         #TODO: implement initialization value
         if type(value) == list:
             for i in range(len(value)):
-                newBlock['memory'][i] = value[i]
+                newBlock['memory'][i+romOffset] = value[i]
+
+        elif type(value) == file:
+            a = array.array('B')
+            a.fromstring(value.read())
+            for i in range(len(a)):
+                newBlock['memory'][i+romOffset] = a[i]
 
         self.blocks.append(newBlock)
 

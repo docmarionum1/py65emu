@@ -8,7 +8,7 @@ test_cpu
 Tests for `py65emu` module.
 """
 
-import unittest
+import os, unittest
 
 from py65emu.cpu import CPU
 from py65emu.mmu import MMU
@@ -800,6 +800,23 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.r.s, 0x7e)
         self.assertEqual(c.mmu.read(0x100), 0x02)
 
+    def test_step(self):
+        c = self._cpu(romInit=[0xa9, 0x55, 0x69, 0x22])
+        c.step()
+        self.assertEqual(c.r.a, 0x55)
+        c.step()
+        self.assertEqual(c.r.a, 0x77)
+
+    def test_run_rom(self):
+        f = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "files", "test_load_file.bin"
+        )
+
+        c = self._cpu(romInit=open(f))
+
+        c.step()
+        self.assertEqual(c.r.a, 0x55)
 
     def tearDown(self):
         pass

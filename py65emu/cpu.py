@@ -25,7 +25,7 @@ class Registers:
             'C': 1      # C - Carry
         }
 
-        self.p = 0b00100000 # Flag Pointer - N|V|1|B|D|I|Z|C
+        self.p = 0b00100100 # Flag Pointer - N|V|1|B|D|I|Z|C
 
     def getFlag(self, flag):
         return bool(self.p & self.flagBit[flag])
@@ -49,6 +49,11 @@ class Registers:
         """
         self.setFlag('Z', v == 0)
         self.setFlag('N', v & 0x80)
+
+    def __repr__(self):
+        return "A: %02x X: %02x Y: %02x S: %02x PC: %04x P: %s" % (
+            self.a, self.x, self.y, self.s, self.pc, bin(self.p)[2:].zfill(8)
+        )
 
 
 class CPU:
@@ -88,6 +93,14 @@ class CPU:
         self.mmu.reset()
 
         self.running = True
+
+    def step(self):
+        #print hex(self.r.pc)
+        self.cc = 0
+        pc = self.r.pc
+        opcode = self.nextByte()
+        #print hex(pc), hex(opcode)
+        self.ops[opcode]()
 
     def execute(self, instruction):
         """

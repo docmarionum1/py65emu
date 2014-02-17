@@ -6,7 +6,7 @@ test_mmu
 ----------------------------------
 """
 
-import unittest
+import os, unittest
 
 from py65emu.mmu import MMU, MemoryRangeError, ReadOnlyError
 
@@ -38,6 +38,17 @@ class TestMMU(unittest.TestCase):
         self.assertEquals(m.blocks[0]['memory'][2], 3)
         self.assertEquals(m.blocks[0]['memory'][3], 0)
 
+    def test_create_with_file(self):
+        f = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "files", "test_load_file.bin"
+        )
+
+        m = MMU([
+            (0, 128, True, open(f))
+        ])
+
+        self.assertEquals(m.blocks[0]['memory'][0], 0xa9)
 
     def test_create_overlapping(self):
         with self.assertRaises(MemoryRangeError):
