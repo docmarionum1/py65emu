@@ -95,11 +95,9 @@ class CPU:
         self.running = True
 
     def step(self):
-        #print hex(self.r.pc)
         self.cc = 0
         pc = self.r.pc
         opcode = self.nextByte()
-        #print hex(pc), hex(opcode)
         self.ops[opcode]()
 
     def execute(self, instruction):
@@ -120,7 +118,7 @@ class CPU:
         return (high << 8) + low
 
     def stackPush(self, v):
-        self.mmu.write(self.stack_page*0xff + self.r.s, v)
+        self.mmu.write(self.stack_page*0x100 + self.r.s, v)
         self.r.s = (self.r.s - 1) & 0xff
 
     def stackPushWord(self, v):
@@ -128,7 +126,7 @@ class CPU:
         self.stackPush(v)
 
     def stackPop(self):
-        v = self.mmu.read(self.stack_page*0xff + ((self.r.s + 1) & 0xff))
+        v = self.mmu.read(self.stack_page*0x100 + ((self.r.s + 1) & 0xff))
         self.r.s = (self.r.s + 1) & 0xff
         return v
 
@@ -199,12 +197,12 @@ class CPU:
         return ((self.mmu.read(j) << 8) + self.mmu.read(i)) & 0xffff
 
     def ix_a(self):
-        i = self.nextByte() + self.r.x
-        return ((self.mmu.read(i + 1) << 8) + self.mmu.read(i)) & 0xffff
+        i = (self.nextByte() + self.r.x) & 0xff
+        return ((self.mmu.read((i + 1) & 0xff) << 8) + self.mmu.read(i)) & 0xffff
 
     def iy_a(self):
         i = self.nextByte()
-        o = (self.mmu.read(i + 1) << 8) + self.mmu.read(i)
+        o = (self.mmu.read((i + 1) & 0xff) << 8) + self.mmu.read(i)
         a = o + self.r.y
 
         if math.floor(o/0xff) != math.floor(a/0xff):
@@ -767,6 +765,8 @@ class CPU:
 
             if r == "a":
                 self.r.ZN(self.r.a)
+            elif r == "p":
+                self.r.p = self.r.p | 0b00100000
 
     def ROL(self, a):
         if a == "a":
@@ -810,7 +810,7 @@ class CPU:
             r = v1 - v2 - (not self.r.getFlag('C'))
             self.r.a = r & 0xff
 
-        self.r.setFlag('C', r > 0)
+        self.r.setFlag('C', r >= 0)
         self.r.setFlag('V', ((v1 ^ v2) & (v1 ^ r) & 0x80))
         self.r.ZN(self.r.a)
 
@@ -831,7 +831,8 @@ class CPU:
         """
         s, d = a
         setattr(self.r, d, getattr(self.r, s))
-        self.r.ZN(getattr(self.r, d))
+        if d != 's':
+            self.r.ZN(getattr(self.r, d))
 
 
     """

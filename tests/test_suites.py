@@ -22,7 +22,7 @@ class TestPy65emu(unittest.TestCase):
     def test_nestest(self):
         f = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), 
-            "files", "nestest.nes"
+            "files", "nestest_mod.nes"
         )
 
         mmu = MMU([
@@ -34,6 +34,8 @@ class TestPy65emu(unittest.TestCase):
         ])
 
         c = CPU(mmu, 0xc000)
+
+        c.r.s = 0xfd
 
         while c.r.pc != 0xc66e:
             try:
