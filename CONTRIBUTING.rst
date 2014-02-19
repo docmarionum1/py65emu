@@ -103,9 +103,3 @@ Before you submit a pull request, check that it meets these guidelines:
    https://travis-ci.org/docmarionum1/py65emu/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
-Tips
-----
-
-To run a subset of tests::
-
-	$ python -m unittest tests.test_py65emu

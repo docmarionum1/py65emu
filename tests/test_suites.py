@@ -30,12 +30,10 @@ class TestPy65emu(unittest.TestCase):
             (0x2000, 0x8), #PPU
             (0x4000, 0x18),
             (0x8000, 0xc000, True, open(f), 0x3ff0) #ROM
-            #(0xbff0, 0x6010, True, open(f)) #ROM
         ])
 
         c = CPU(mmu, 0xc000)
-
-        c.r.s = 0xfd
+        c.r.s = 0xfd #Not sure why the stack starts here.
 
         while c.r.pc != 0xc66e:
             try:
@@ -44,6 +42,7 @@ class TestPy65emu(unittest.TestCase):
                 print c.r
                 print traceback.format_exc()
                 raise e
+
             self.assertEqual(c.mmu.read(0x2), 0x00, hex(c.mmu.read(0x2)))
             self.assertEqual(c.mmu.read(0x3), 0x00, hex(c.mmu.read(0x3)))
 

@@ -32,13 +32,13 @@ setup(
     include_package_data=True,
     install_requires=[
     ],
-    license="BSD",
+    license="WTFPL",
     zip_safe=False,
     keywords='py65emu',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: WTFPL',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.6',
