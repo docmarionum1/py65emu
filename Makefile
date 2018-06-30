@@ -24,6 +24,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
+	pycodestyle py65emu tests
 	flake8 py65emu tests
 
 test:

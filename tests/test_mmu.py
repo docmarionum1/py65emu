@@ -18,14 +18,14 @@ class TestMMU(unittest.TestCase):
         pass
 
     def test_create_empty(self):
-        _ = MMU([])
+        MMU([])
 
     def test_create(self):
-        _ = MMU([
+        MMU([
             (0, 128, False, None)
         ])
 
-        _ = MMU([
+        MMU([
             (0, 128, False, None),
             (128, 128, True, None)
         ])
@@ -53,7 +53,7 @@ class TestMMU(unittest.TestCase):
 
     def test_create_overlapping(self):
         with self.assertRaises(MemoryRangeError):
-            _ = MMU([(0, 129), (128, 128)])
+            MMU([(0, 129), (128, 128)])
 
     def test_addBlock(self):
         m = MMU([])
