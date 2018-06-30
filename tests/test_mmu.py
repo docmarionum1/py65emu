@@ -6,7 +6,8 @@ test_mmu
 ----------------------------------
 """
 
-import os, unittest
+import os
+import unittest
 
 from py65emu.mmu import MMU, MemoryRangeError, ReadOnlyError
 
@@ -17,14 +18,14 @@ class TestMMU(unittest.TestCase):
         pass
 
     def test_create_empty(self):
-        m = MMU([])
+        _ = MMU([])
 
     def test_create(self):
-        m = MMU([
+        _ = MMU([
             (0, 128, False, None)
         ])
 
-        m = MMU([
+        _ = MMU([
             (0, 128, False, None),
             (128, 128, True, None)
         ])
@@ -40,19 +41,19 @@ class TestMMU(unittest.TestCase):
 
     def test_create_with_file(self):
         f = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 
+            os.path.dirname(os.path.realpath(__file__)),
             "files", "test_load_file.bin"
         )
 
         m = MMU([
-            (0, 128, True, open(f))
+            (0, 128, True, open(f, "rb"))
         ])
 
         self.assertEquals(m.blocks[0]['memory'][0], 0xa9)
 
     def test_create_overlapping(self):
         with self.assertRaises(MemoryRangeError):
-            m = MMU([(0, 129), (128, 128)])
+            _ = MMU([(0, 129), (128, 128)])
 
     def test_addBlock(self):
         m = MMU([])
@@ -115,6 +116,7 @@ class TestMMU(unittest.TestCase):
 
     def tearDown(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()

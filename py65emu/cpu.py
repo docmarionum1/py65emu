@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import math, functools
+import math
+import functools
+
 
 class Registers:
     """ An object to hold the CPU registers. """
     def __init__(self, pc=0):
         self.reset(pc)
-        
 
     def reset(self, pc=0):
         self.a = 0          # Accumulator
@@ -24,8 +25,7 @@ class Registers:
             'Z': 2,     # Z - Zero
             'C': 1      # C - Carry
         }
-
-        self.p = 0b00100100 # Flag Pointer - N|V|1|B|D|I|Z|C
+        self.p = 0b00100100  # Flag Pointer - N|V|1|B|D|I|Z|C
 
     def getFlag(self, flag):
         return bool(self.p & self.flagBit[flag])
@@ -34,7 +34,7 @@ class Registers:
         if v:
             self.p = self.p | self.flagBit[flag]
         else:
-            self.clearFlag(flag)            
+            self.clearFlag(flag)
 
     def clearFlag(self, flag):
         self.p = self.p & (255 - self.flagBit[flag])
@@ -44,7 +44,7 @@ class Registers:
 
     def ZN(self, v):
         """
-        The criteria for Z and N flags are standard.  Z gets set if the 
+        The criteria for Z and N flags are standard.  Z gets set if the
         value is zero and N gets set to the same value as bit 7 of the value.
         """
         self.setFlag('Z', v == 0)
@@ -57,7 +57,7 @@ class Registers:
 
 
 class CPU:
-    
+
     def __init__(self, mmu=None, pc=None, stack_page=0x1, magic=0xee):
         """
         Parameters
@@ -73,11 +73,11 @@ class CPU:
         self.mmu = mmu
         self.r = Registers()
         self.cc = 0
-        # Which page the stack is in.  0x1 means that the stack is from 
+        # Which page the stack is in.  0x1 means that the stack is from
         # 0x100-0x1ff.  In the 6502 this is always true but it's different
-        # for other 65* varients. 
+        # for other 65* varients.
         self.stack_page = stack_page
-        self.magic = magic 
+        self.magic = magic
         self.reset()
 
         if pc:
@@ -87,7 +87,7 @@ class CPU:
             pass
 
         self._create_ops()
-        
+
     def reset(self):
         self.r.reset()
         self.mmu.reset()
@@ -96,7 +96,7 @@ class CPU:
 
     def step(self):
         self.cc = 0
-        pc = self.r.pc
+        # pc = self.r.pc
         opcode = self.nextByte()
         self.ops[opcode]()
 
@@ -134,10 +134,10 @@ class CPU:
         return self.stackPop() + (self.stackPop() << 8)
 
     def fromBCD(self, v):
-        return ((((v&0xf0)/0x10)*10) + (v&0xf))
+        return (((v & 0xf0) // 0x10) * 10) + (v & 0xf)
 
     def toBCD(self, v):
-        return (int(math.floor(v/10))*16 + (v%10))
+        return int(math.floor(v/10))*16 + (v % 10)
 
     def fromTwosCom(self, v):
         return (v & 0x7f) - (v & 0x80)
@@ -153,7 +153,6 @@ class CPU:
 
     def interruptAddress(self, i):
         return self.mmu.readWord(self.interrupts[i])
-
 
     # Addressing modes
     def z_a(self):
@@ -187,9 +186,9 @@ class CPU:
     def i_a(self):
         """Only used by indirect JMP"""
         i = self.nextWord()
-        #Doesn't carry, so if the low byte is in the XXFF position
-        #Then the high byte will be XX00 rather than XY00
-        if i&0xff == 0xff:
+        # Doesn't carry, so if the low byte is in the XXFF position
+        # Then the high byte will be XX00 rather than XY00
+        if i & 0xff == 0xff:
             j = i - 0xff
         else:
             j = i + 1
@@ -210,24 +209,41 @@ class CPU:
 
         return a & 0xffff
 
-
     # Return values based on the addressing mode
-    def im(self): return self.nextByte()
-    def z(self):  return self.mmu.read(self.z_a())
-    def zx(self): return self.mmu.read(self.zx_a())
-    def zy(self): return self.mmu.read(self.zy_a())
-    def a(self):  return self.mmu.read(self.a_a())
-    def ax(self): return self.mmu.read(self.ax_a())
-    def ay(self): return self.mmu.read(self.ay_a())
-    def i(self):  return self.mmu.read(self.i_a())
-    def ix(self): return self.mmu.read(self.ix_a())
-    def iy(self): return self.mmu.read(self.iy_a())
+    def im(self):
+        return self.nextByte()
 
+    def z(self):
+        return self.mmu.read(self.z_a())
+
+    def zx(self):
+        return self.mmu.read(self.zx_a())
+
+    def zy(self):
+        return self.mmu.read(self.zy_a())
+
+    def a(self):
+        return self.mmu.read(self.a_a())
+
+    def ax(self):
+        return self.mmu.read(self.ax_a())
+
+    def ay(self):
+        return self.mmu.read(self.ay_a())
+
+    def i(self):
+        return self.mmu.read(self.i_a())
+
+    def ix(self):
+        return self.mmu.read(self.ix_a())
+
+    def iy(self):
+        return self.mmu.read(self.iy_a())
 
     # Operators
     # All the operations.  For each operation have the name of the operation,
     # whether it acts on values, "v" or on addresses, "a" and a list of 4-tuples
-    # containing the valid addressing modes for the operation, the 
+    # containing the valid addressing modes for the operation, the
     # base number of cycles it takes, the opcode, and a target register, if valid.
     _ops = [
         ("ADC", "v", [
@@ -460,7 +476,7 @@ class CPU:
             ("zx", 4, [0x94], None),
             ("a",  4, [0x8c], None)
         ]),
-        #***Ilegal Opcodes***
+        # ***Ilegal Opcodes***
         ("AAC", "v", [
             ("im", 2, [0x0b, 0x2b], None)
         ]),
@@ -475,10 +491,10 @@ class CPU:
         ]),
         ("ASR", "v", [
             ("im", 2, [0x4b], None)
-        ]), 
+        ]),
         ("ATX", "v", [
             ("im", 2, [0xab], None)
-        ]), 
+        ]),
         ("AXA", "a", [
             ("ay", 5, [0x9f], None),
             ("iy", 6, [0x93], None)
@@ -505,7 +521,7 @@ class CPU:
             ("iy", 8, [0xf3], None)
         ]),
         ("KIL", "v", [
-            ("im", 0, [0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 
+            ("im", 0, [0x02, 0x12, 0x22, 0x32, 0x42, 0x52,
                        0x62, 0x72, 0x92, 0xb2, 0xd2, 0xf2], 1)
         ]),
         ("LAR", "v", [
@@ -580,9 +596,9 @@ class CPU:
 
         self.ops = [None]*0x100
 
-        for op,atype,addrs in self._ops:
+        for op, atype, addrs in self._ops:
             op_f = getattr(self, op)
-            for a,cc,opcode,target in addrs:
+            for a, cc, opcode, target in addrs:
                 if target:
                     a_f = functools.partial(f_target, target)
                 elif atype == 'v':
@@ -596,15 +612,14 @@ class CPU:
                         raise Exception("Opcode %s already defined" % hex(o))
                     self.ops[o] = fp
 
-
     def ADC(self, v2):
         v1 = self.r.a
 
-        if self.r.getFlag('D'): #decimal mode
+        if self.r.getFlag('D'):  # decimal mode
             d1 = self.fromBCD(v1)
             d2 = self.fromBCD(v2)
             r = d1 + d2 + self.r.getFlag('C')
-            self.r.a = self.toBCD(r%100)
+            self.r.a = self.toBCD(r % 100)
 
             self.r.setFlag('C', r > 99)
         else:
@@ -629,7 +644,7 @@ class CPU:
             self.mmu.write(a, v)
 
         self.r.setFlag('C', v > 0xff)
-        self.r.ZN(v&0xff)
+        self.r.ZN(v & 0xff)
 
     def BIT(self, v):
         self.r.setFlag('Z', self.r.a & v == 0)
@@ -681,7 +696,7 @@ class CPU:
         self.r.x = (self.r.x-1) & 0xff
         self.r.ZN(self.r.x)
 
-    def DEY(self, _):  
+    def DEY(self, _):
         self.r.y = (self.r.y-1) & 0xff
         self.r.ZN(self.r.y)
 
@@ -707,7 +722,7 @@ class CPU:
         self.r.x = (self.r.x+1) & 0xff
         self.r.ZN(self.r.x)
 
-    def INY(self, _):  
+    def INY(self, _):
         self.r.y = (self.r.y+1) & 0xff
         self.r.ZN(self.r.y)
 
@@ -753,7 +768,7 @@ class CPU:
         """
         Stack operations, PusH and PulL.  v is a tuple where the
         first value is either PH or PL, specifying the action and
-        the second is the source or target register, either A or P, 
+        the second is the source or target register, either A or P,
         meaning the Accumulator or the Processor status flag.
         """
         a, r = v
@@ -811,6 +826,7 @@ class CPU:
             self.r.a = r & 0xff
 
         self.r.setFlag('C', r >= 0)
+        print("v1=", repr(v1), "v2=", repr(v2), "r=", repr(r))  # XXX
         self.r.setFlag('V', ((v1 ^ v2) & (v1 ^ r) & 0x80))
         self.r.ZN(self.r.a)
 
@@ -834,7 +850,6 @@ class CPU:
         if d != 's':
             self.r.ZN(getattr(self.r, d))
 
-
     """
     Illegal Opcodes
     ---------------
@@ -853,15 +868,14 @@ class CPU:
     line.
     """
 
-    def AAC(self, v): #ANC
+    def AAC(self, v):  # ANC
         self.AND(v)
         self.r.setFlag('C', self.r.getFlag('N'))
 
-    def AAX(self, a): #SAX, AXS
+    def AAX(self, a):  # SAX, AXS
         r = self.r.a & self.r.x
         self.mmu.write(a, r)
-
-        #self.r.ZN(r) #There is conflicting information whether this effects P.
+        # self.r.ZN(r) # There is conflicting information whether this effects P.
 
     def ARR(self, v):
         self.AND(v)
@@ -869,15 +883,15 @@ class CPU:
         self.r.setFlag('C', self.r.a & 0x40)
         self.r.setFlag('V', bool(self.r.a & 0x40) ^ bool(self.r.a & 0x20))
 
-    def ASR(self, v): #ALR
+    def ASR(self, v):  # ALR
         self.AND(v)
         self.LSR('a')
 
-    def ATX(self, v): #LXA, OAL
+    def ATX(self, v):  # LXA, OAL
         self.AND(v)
         self.T(('a', 'x'))
 
-    def AXA(self, a): #SHA
+    def AXA(self, a):  # SHA
         """
         There are a few illegal opcodes which and the high
         bit of the address with registers and write the values
@@ -890,7 +904,7 @@ class CPU:
         o = (a - self.r.y) & 0xffff
         low = o & 0xff
         high = o >> 8
-        if low + self.r.y > 0xff: #crossed page
+        if low + self.r.y > 0xff:  # crossed page
             a = ((high & self.r.x) << 8) + low + self.r.y
         else:
             a = (high << 8) + low + self.r.y
@@ -898,25 +912,25 @@ class CPU:
         v = self.r.a & self.r.x & (high + 1)
         self.mmu.write(a, v)
 
-    def AXS(self, v): #SBX, SAX
+    def AXS(self, v):  # SBX, SAX
         o = self.r.a & self.r.x
         self.r.x = (o - v) & 0xff
 
         self.r.setFlag('C', v <= o)
         self.r.ZN(self.r.x)
 
-    def DCP(self, a): #DCM
+    def DCP(self, a):  # DCM
         self.DEC(a)
         self.CMP(self.mmu.read(a))
 
-    def ISC(self, a): #ISB, INS
+    def ISC(self, a):  # ISB, INS
         self.INC(a)
         self.SBC(self.mmu.read(a))
 
-    def KIL(self, _): #JAM, HLT
+    def KIL(self, _):  # JAM, HLT
         self.running = False
 
-    def LAR(self, v): #LAE, LAS
+    def LAR(self, v):  # LAE, LAS
         self.r.a = self.r.x = self.r.s = self.r.s & v
         self.r.ZN(self.r.a)
 
@@ -932,20 +946,20 @@ class CPU:
         self.ROR(a)
         self.ADC(self.mmu.read(a))
 
-    def SLO(self, a): #ASO
+    def SLO(self, a):  # ASO
         self.ASL(a)
         self.ORA(self.mmu.read(a))
 
-    def SRE(self, a): #LSE
+    def SRE(self, a):  # LSE
         self.LSR(a)
         self.EOR(self.mmu.read(a))
 
-    def SXA(self, a): #SHX, XAS
+    def SXA(self, a):  # SHX, XAS
         # See AXA
         o = (a - self.r.y) & 0xffff
         low = o & 0xff
         high = o >> 8
-        if low + self.r.y > 0xff: #crossed page
+        if low + self.r.y > 0xff:  # crossed page
             a = ((high & self.r.x) << 8) + low + self.r.y
         else:
             a = (high << 8) + low + self.r.y
@@ -953,12 +967,12 @@ class CPU:
         v = self.r.x & (high + 1)
         self.mmu.write(a, v)
 
-    def SYA(self, a): #SHY, SAY
+    def SYA(self, a):  # SHY, SAY
         # See AXA
         o = (a - self.r.x) & 0xffff
         low = o & 0xff
         high = o >> 8
-        if low + self.r.x > 0xff: #crossed page
+        if low + self.r.x > 0xff:  # crossed page
             a = ((high & self.r.y) << 8) + low + self.r.x
         else:
             a = (high << 8) + low + self.r.x
@@ -966,7 +980,7 @@ class CPU:
         v = self.r.y & (high + 1)
         self.mmu.write(a, v)
 
-    def XAA(self, v): #ANE
+    def XAA(self, v):  # ANE
         """
         Another very wonky operation.  It's fully described here:
         http://visual6502.org/wiki/index.php?title=6502_Opcode_8B_%28XAA,_ANE%29
@@ -976,15 +990,15 @@ class CPU:
         self.r.a = (self.r.a | self.magic) & self.r.x & v
         self.r.ZN(self.r.a)
 
-    def XAS(self, a): #SHS, TAS
-        #First set the stack pointer's value
+    def XAS(self, a):  # SHS, TAS
+        # First set the stack pointer's value
         self.r.s = self.r.a & self.r.x
 
-        #Then write to memory using the new value of the stack pointer
+        # Then write to memory using the new value of the stack pointer
         o = (a - self.r.y) & 0xffff
         low = o & 0xff
         high = o >> 8
-        if low + self.r.y > 0xff: #crossed page
+        if low + self.r.y > 0xff:  # crossed page
             a = ((high & self.r.s) << 8) + low + self.r.y
         else:
             a = (high << 8) + low + self.r.y

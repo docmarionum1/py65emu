@@ -1,13 +1,15 @@
 import array
 
+
 class MemoryRangeError(ValueError):
     pass
+
 
 class ReadOnlyError(TypeError):
     pass
 
+
 class MMU:
-    
     def __init__(self, blocks):
         """
         Initialize the MMU with the blocks specified in blocks.  blocks
@@ -19,7 +21,7 @@ class MMU:
         # have different properties.  Stored as dict of "start", "length",
         # "readonly" and "memory"
         self.blocks = []
-        
+
         for b in blocks:
             self.addBlock(*b)
 
@@ -35,29 +37,28 @@ class MMU:
         """
         Add a block of memory to the list of blocks with the given start address
         length. whether it is readonly or not and the starting value as either
-        a file pointer, binary value or list of unsigned integers.  If the 
+        a file pointer, binary value or list of unsigned integers.  If the
         block overlaps with an existing block an exception will be thrown.
 
         """
-        
-        #check if the block overlaps with another
-        for b in self.blocks:
-            if ((start+length > b['start'] and start+length < b['start']+b['length']) or 
-                (b['start']+b['length'] > start and b['start']+b['length'] < start+length)):
-                raise MemoryRangeError()
 
+        # check if the block overlaps with another
+        for b in self.blocks:
+            if ((start+length > b['start'] and start+length < b['start']+b['length']) or
+                    (b['start']+b['length'] > start and b['start']+b['length'] < start+length)):
+                raise MemoryRangeError()
 
         newBlock = {
             'start': start, 'length': length, 'readonly': readonly,
             'memory': array.array('B', [0]*length)
         }
 
-        #TODO: implement initialization value
+        # TODO: implement initialization value
         if type(value) == list:
             for i in range(len(value)):
                 newBlock['memory'][i+romOffset] = value[i]
 
-        elif type(value) == file:
+        elif value is not None:
             a = array.array('B')
             a.fromstring(value.read())
             for i in range(len(a)):

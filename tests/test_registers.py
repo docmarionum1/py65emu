@@ -30,9 +30,9 @@ class TestRegisters(unittest.TestCase):
         r.setFlag('Z', False)
         self.assertFalse(r.getFlag('Z'))
 
-
     def tearDown(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
