@@ -826,7 +826,6 @@ class CPU:
             self.r.a = r & 0xff
 
         self.r.setFlag('C', r >= 0)
-        print("v1=", repr(v1), "v2=", repr(v2), "r=", repr(r))  # XXX
         self.r.setFlag('V', ((v1 ^ v2) & (v1 ^ r) & 0x80))
         self.r.ZN(self.r.a)
 
