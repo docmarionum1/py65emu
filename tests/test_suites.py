@@ -23,17 +23,18 @@ class TestPy65emu(unittest.TestCase):
         pass
 
     def test_nestest(self):
-        f = os.path.join(
+        path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "files", "nestest_mod.nes"
         )
 
-        mmu = MMU([
-            (0x0000, 0x800),  # RAM
-            (0x2000, 0x8),  # PPU
-            (0x4000, 0x18),
-            (0x8000, 0xc000, True, open(f, "rb"), 0x3ff0)  # ROM
-        ])
+        with open(path, "rb") as f:
+            mmu = MMU([
+                (0x0000, 0x800),  # RAM
+                (0x2000, 0x8),  # PPU
+                (0x4000, 0x18),
+                (0x8000, 0xc000, True, f, 0x3ff0)  # ROM
+            ])
 
         c = CPU(mmu, 0xc000)
         c.r.s = 0xfd  # Not sure why the stack starts here.

@@ -804,12 +804,13 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.r.a, 0x77)
 
     def test_run_rom(self):
-        f = os.path.join(
+        path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "files", "test_load_file.bin"
         )
 
-        c = self._cpu(romInit=open(f, "rb"))
+        with open(path, "rb") as f:
+            c = self._cpu(romInit=f)
 
         c.step()
         self.assertEqual(c.r.a, 0x55)
