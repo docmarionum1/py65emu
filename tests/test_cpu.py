@@ -8,18 +8,20 @@ test_cpu
 Tests for `py65emu` module.
 """
 
-import os, unittest
+import os
+import unittest
 
 from py65emu.cpu import CPU
 from py65emu.mmu import MMU
 
+
 class TestCPU(unittest.TestCase):
 
-    def _cpu(self, ram=(0,0x200, False), rom=(0x1000, 0x100), romInit=None, pc=0x1000):
+    def _cpu(self, ram=(0, 0x200, False), rom=(0x1000, 0x100), romInit=None, pc=0x1000):
         return CPU(
             MMU([
                 ram,
-                rom + (True,romInit)
+                rom + (True, romInit)
             ]),
             pc
         )
@@ -48,7 +50,7 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.fromTwosCom(0x7f), 127)
         self.assertEqual(c.fromTwosCom(0xff), -1)
         self.assertEqual(c.fromTwosCom(0x80), -128)
-        
+
     def test_nextByte(self):
         c = self._cpu(romInit=[1, 2, 3])
         self.assertEqual(c.nextByte(), 1)
@@ -132,11 +134,9 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.stackPop(), 0x10)
         self.assertEqual(c.stackPop(), 0x05)
 
-
     def test_adc(self):
         c = self._cpu(romInit=[1, 2, 250, 3, 100, 100])
-
-        #immediate
+        # immediate
         c.ops[0x69]()
         self.assertEqual(c.r.a, 1)
         c.ops[0x69]()
@@ -200,12 +200,12 @@ class TestCPU(unittest.TestCase):
         c.mmu.write(0, 0xff)
         c.r.a = 1
 
-        c.ops[0x24]() #Zero page
+        c.ops[0x24]()  # Zero page
         self.assertFalse(c.r.getFlag('Z'))
         self.assertTrue(c.r.getFlag('N'))
         self.assertTrue(c.r.getFlag('V'))
 
-        c.ops[0x2c]() #Absolute
+        c.ops[0x2c]()  # Absolute
         self.assertTrue(c.r.getFlag('Z'))
         self.assertFalse(c.r.getFlag('N'))
         self.assertFalse(c.r.getFlag('V'))
@@ -471,8 +471,6 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.mmu.read(0x00), 0x80)
         self.assertFalse(c.r.getFlag('C'))
 
-
-
     def test_rti(self):
         c = self._cpu()
 
@@ -537,8 +535,7 @@ class TestCPU(unittest.TestCase):
         self.assertTrue(c.r.getFlag('N'))
         self.assertFalse(c.r.getFlag('Z'))
 
-
-        #decimal mode test
+        # decimal mode test
         c.r.setFlag('D')
 
         c.r.a = 0x46
@@ -671,7 +668,7 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.r.x, 0x18)
 
     def test_axa(self):
-        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+        c = self._cpu(ram=(0, 0x400, False), romInit=[0xff, 0x01])
 
         c.r.a = c.r.x = 0xff
         c.r.y = 0x01
@@ -742,6 +739,15 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.mmu.read(0x01), 0x80)
         self.assertEqual(c.r.a, 0x87)
 
+    def test_rra2(self):
+        c = self._cpu(romInit=[0x01])
+        c.mmu.write(0x01, 0x02)
+        c.r.a = 0x06
+        c.r.setFlag('C')
+        c.ops[0x47]()
+        self.assertEqual(c.mmu.read(0x01), 0x01)
+        self.assertEqual(c.r.a, 0x07)
+
     def test_slo(self):
         c = self._cpu(romInit=[0x01])
         c.mmu.write(0x01, 0x01)
@@ -751,18 +757,8 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.mmu.read(0x01), 0x02)
         self.assertEqual(c.r.a, 0x06)
 
-    def test_rra(self):
-        c = self._cpu(romInit=[0x01])
-        c.mmu.write(0x01, 0x02)
-        c.r.a = 0x06
-        c.r.setFlag('C')
-        c.ops[0x47]()
-        self.assertEqual(c.mmu.read(0x01), 0x01)
-        self.assertEqual(c.r.a, 0x07)
-
     def test_sxa(self):
-        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
-
+        c = self._cpu(ram=(0, 0x400, False), romInit=[0xff, 0x01])
         c.r.x = 0xff
         c.r.y = 0x01
         c.ops[0x9e]()
@@ -770,7 +766,7 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.mmu.read(0x200), 0x02)
 
     def test_sya(self):
-        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+        c = self._cpu(ram=(0, 0x400, False), romInit=[0xff, 0x01])
 
         c.r.y = 0xff
         c.r.x = 0x01
@@ -789,7 +785,7 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.r.a, 0b11101110)
 
     def test_xas(self):
-        c = self._cpu(ram=(0,0x400, False), romInit=[0xff, 0x01])
+        c = self._cpu(ram=(0, 0x400, False), romInit=[0xff, 0x01])
 
         c.r.x = 0xfe
         c.r.a = 0x7f
@@ -808,18 +804,20 @@ class TestCPU(unittest.TestCase):
         self.assertEqual(c.r.a, 0x77)
 
     def test_run_rom(self):
-        f = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 
+        path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
             "files", "test_load_file.bin"
         )
 
-        c = self._cpu(romInit=open(f))
+        with open(path, "rb") as f:
+            c = self._cpu(romInit=f)
 
         c.step()
         self.assertEqual(c.r.a, 0x55)
 
     def tearDown(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()

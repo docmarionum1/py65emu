@@ -6,7 +6,8 @@ test_mmu
 ----------------------------------
 """
 
-import os, unittest
+import os
+import unittest
 
 from py65emu.mmu import MMU, MemoryRangeError, ReadOnlyError
 
@@ -17,14 +18,14 @@ class TestMMU(unittest.TestCase):
         pass
 
     def test_create_empty(self):
-        m = MMU([])
+        MMU([])
 
     def test_create(self):
-        m = MMU([
+        MMU([
             (0, 128, False, None)
         ])
 
-        m = MMU([
+        MMU([
             (0, 128, False, None),
             (128, 128, True, None)
         ])
@@ -34,25 +35,26 @@ class TestMMU(unittest.TestCase):
             (0, 128, False, [1, 2, 3])
         ])
 
-        self.assertEquals(m.blocks[0]['memory'][0], 1)
-        self.assertEquals(m.blocks[0]['memory'][2], 3)
-        self.assertEquals(m.blocks[0]['memory'][3], 0)
+        self.assertEqual(m.blocks[0]['memory'][0], 1)
+        self.assertEqual(m.blocks[0]['memory'][2], 3)
+        self.assertEqual(m.blocks[0]['memory'][3], 0)
 
     def test_create_with_file(self):
-        f = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 
+        path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
             "files", "test_load_file.bin"
         )
 
-        m = MMU([
-            (0, 128, True, open(f))
-        ])
+        with open(path, "rb") as f:
+            m = MMU([
+                (0, 128, True, f)
+            ])
 
-        self.assertEquals(m.blocks[0]['memory'][0], 0xa9)
+        self.assertEqual(m.blocks[0]['memory'][0], 0xa9)
 
     def test_create_overlapping(self):
         with self.assertRaises(MemoryRangeError):
-            m = MMU([(0, 129), (128, 128)])
+            MMU([(0, 129), (128, 128)])
 
     def test_addBlock(self):
         m = MMU([])
@@ -70,14 +72,14 @@ class TestMMU(unittest.TestCase):
     def test_write(self):
         m = MMU([(0, 128)])
         m.write(16, 25)
-        self.assertEquals(m.blocks[0]['memory'][16], 25)
+        self.assertEqual(m.blocks[0]['memory'][16], 25)
 
     def test_write_multiple_blocks(self):
         m = MMU([(0, 128), (1024, 128)])
         m.write(16, 25)
-        self.assertEquals(m.blocks[0]['memory'][16], 25)
+        self.assertEqual(m.blocks[0]['memory'][16], 25)
         m.write(1056, 55)
-        self.assertEquals(m.blocks[1]['memory'][32], 55, m.blocks[1]['memory'])
+        self.assertEqual(m.blocks[1]['memory'][32], 55, m.blocks[1]['memory'])
 
     def test_write_readonly(self):
         m = MMU([(0, 16, True), (16, 16), (32, 16, True)])
@@ -91,8 +93,8 @@ class TestMMU(unittest.TestCase):
         m = MMU([(0, 128)])
         m.write(16, 5)
         m.write(64, 111)
-        self.assertEquals(5, m.read(16))
-        self.assertEquals(111, m.read(64))
+        self.assertEqual(5, m.read(16))
+        self.assertEqual(111, m.read(64))
 
     def test_index_error(self):
         m = MMU([(0, 128)])
@@ -110,11 +112,12 @@ class TestMMU(unittest.TestCase):
         m.blocks[0]['memory'][0] = 5
         m.write(16, 10)
         m.reset()
-        self.assertEquals(m.read(0), 5)
-        self.assertEquals(m.read(16), 0)
+        self.assertEqual(m.read(0), 5)
+        self.assertEqual(m.read(16), 0)
 
     def tearDown(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
