@@ -669,7 +669,7 @@ class CPU:
         self.r.setFlag('B')
         self.stackPushWord(self.r.pc+1)
         self.stackPush(self.r.p)
-        self.r.clearFlag('I')
+        self.r.setFlag('I')
         self.r.pc = self.interruptAddress('BRK')
 
     def CP(self, r, v):
