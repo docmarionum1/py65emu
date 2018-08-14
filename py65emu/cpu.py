@@ -123,7 +123,7 @@ class CPU:
 
     def stackPushWord(self, v):
         self.stackPush(v >> 8)
-        self.stackPush(v)
+        self.stackPush(v & 0xff)
 
     def stackPop(self):
         v = self.mmu.read(self.stack_page*0x100 + ((self.r.s + 1) & 0xff))
