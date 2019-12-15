@@ -216,7 +216,7 @@ class TestCPU(unittest.TestCase):
         c.r.p = 239
         c.ops[0x00]()
         self.assertTrue(c.r.getFlag('B'))
-        self.assertFalse(c.r.getFlag('I'))
+        self.assertTrue(c.r.getFlag('I'))
         self.assertEqual(c.r.pc, 0x1234)
         self.assertEqual(c.stackPop(), 255)
         self.assertEqual(c.stackPopWord(), 0x1001)

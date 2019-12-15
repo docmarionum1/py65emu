@@ -123,7 +123,7 @@ class CPU:
 
     def stackPushWord(self, v):
         self.stackPush(v >> 8)
-        self.stackPush(v)
+        self.stackPush(v & 0xff)
 
     def stackPop(self):
         v = self.mmu.read(self.stack_page*0x100 + ((self.r.s + 1) & 0xff))
@@ -669,7 +669,7 @@ class CPU:
         self.r.setFlag('B')
         self.stackPushWord(self.r.pc+1)
         self.stackPush(self.r.p)
-        self.r.clearFlag('I')
+        self.r.setFlag('I')
         self.r.pc = self.interruptAddress('BRK')
 
     def CP(self, r, v):
