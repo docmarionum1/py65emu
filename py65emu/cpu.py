@@ -67,7 +67,7 @@ class CPU:
         stack_page: The index of the page which contains the stack.  The default for
             a 6502 is page 1 (the stack from 0x0100-0x1ff) but in some varients the
             stack page may be elsewhere.
-        magic: A value needed for on of the illegal opcodes, XAA.  This value differs
+        magic: A value needed for the illegal opcodes, XAA.  This value differs
             between different versions, even of the same CPU.  The default is 0xee.
         """
         self.mmu = mmu

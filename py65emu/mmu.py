@@ -13,8 +13,9 @@ class MMU:
     def __init__(self, blocks):
         """
         Initialize the MMU with the blocks specified in blocks.  blocks
-        is a list of 3-tuples, (start, length, readonly, value, valueStart).
+        is a list of 5-tuples, (start, length, readonly, value, valueOffset).
 
+        See `addBlock` for details about the parameters.
         """
 
         # Different blocks of memory stored seperately so that they can
@@ -33,13 +34,28 @@ class MMU:
             if not b['readonly']:
                 b['memory'] = array.array('B', [0]*b['length'])
 
-    def addBlock(self, start, length, readonly=False, value=None, romOffset=0):
+    def addBlock(self, start, length, readonly=False, value=None, valueOffset=0):
         """
         Add a block of memory to the list of blocks with the given start address
-        length. whether it is readonly or not and the starting value as either
+        and length; whether it is readonly or not; and the starting value as either
         a file pointer, binary value or list of unsigned integers.  If the
         block overlaps with an existing block an exception will be thrown.
 
+        Parameters
+        ----------
+        start : int
+            The starting address of the block of memory
+        length : int
+            The length of the block in bytes
+        readOnly: bool
+            Whether the block should be read only (such as ROM) (default False)
+        value : file pointer, binary or lint of unsigned integers
+            The intial value for the block of memory. Used for loading program
+            data. (Default None)
+        valueOffset : integer
+            Used when copying the above `value` into the block to offset the
+            location it is copied into. For example, to copy byte 0 in `value`
+            into location 1000 in the block, set valueOffest=1000. (Default 0)
         """
 
         # check if the block overlaps with another
@@ -56,13 +72,13 @@ class MMU:
         # TODO: implement initialization value
         if type(value) == list:
             for i in range(len(value)):
-                newBlock['memory'][i+romOffset] = value[i]
+                newBlock['memory'][i+valueOffset] = value[i]
 
         elif value is not None:
             a = array.array('B')
             a.fromstring(value.read())
             for i in range(len(a)):
-                newBlock['memory'][i+romOffset] = a[i]
+                newBlock['memory'][i+valueOffset] = a[i]
 
         self.blocks.append(newBlock)
 
