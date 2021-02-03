@@ -78,7 +78,6 @@ class CPU:
         # for other 65* varients.
         self.stack_page = stack_page
         self.magic = magic
-        self.reset()
 
         if pc:
             self.r.pc = pc
