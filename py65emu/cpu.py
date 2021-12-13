@@ -94,8 +94,6 @@ class CPU:
         self.running = True
 
     def step(self):
-        self.cc = 0
-        # pc = self.r.pc
         opcode = self.nextByte()
         self.ops[opcode]()
 
