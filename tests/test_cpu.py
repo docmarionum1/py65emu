@@ -815,6 +815,24 @@ class TestCPU(unittest.TestCase):
         c.step()
         self.assertEqual(c.r.a, 0x55)
 
+    def test_cycle_counting(self):
+        # Adapted from @InvalidCo's test in #7
+        c = self._cpu(romInit=[
+            0xA0, 0x80,
+            0xB9, 0x00, 0x00,
+            0xB9, 0x80, 0x00,
+            0x18,
+            0xB0, 0xFF,
+            0x90, 0x01,
+            0x90, 0x8F
+        ])
+
+        expected_cycles = [2, 4, 5, 2, 2, 3, 4]
+
+        for expected_cycle in expected_cycles:
+            c.step()
+            self.assertEqual(c.cc, expected_cycle)
+
     def tearDown(self):
         pass
 

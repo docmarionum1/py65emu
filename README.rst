@@ -33,15 +33,20 @@ Example Usage:::
         c.step()
 
         # You can check the registers and memory values to determine what has changed
-        print c.r.a 	# A register
-        print c.r.x 	# X register
-        print c.r.y 	# Y register
-        print c.r.s 	# Stack Pointer
-        print c.r.pc 	# Program Counter
+        print(c.r.a) 	# A register
+        print(c.r.x) 	# X register
+        print(c.r.y) 	# Y register
+        print(c.r.s) 	# Stack Pointer
+        print(c.r.pc) 	# Program Counter
 
-        print c.r.getFlag('C') # Get the value of a flag from the flag register.
+        print(c.cc)     # Print the number of cycles that passed during the last step.
+                        # This number resets for each call to `.step()`
 
-        print mmu.read(0xff) # Read a value from memory
+        print(c.r.getFlag('C')) # Get the value of a flag from the flag register.
+
+        print(mmu.read(0xff)) # Read a value from memory
+
+        
 
 The full set of parameters for CPU is::
 

@@ -72,6 +72,7 @@ class CPU:
         """
         self.mmu = mmu
         self.r = Registers()
+        # Hold the number of CPU cycles used during the last call to `self.step()`
         self.cc = 0
         # Which page the stack is in.  0x1 means that the stack is from
         # 0x100-0x1ff.  In the 6502 this is always true but it's different
@@ -95,7 +96,6 @@ class CPU:
 
     def step(self):
         self.cc = 0
-        # pc = self.r.pc
         opcode = self.nextByte()
         self.ops[opcode]()
 
