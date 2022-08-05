@@ -4,7 +4,6 @@
 import os
 import sys
 
-
 try:
     from setuptools import setup
 except ImportError:
@@ -14,12 +13,12 @@ if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
 
-readme = open('README.rst').read()
+readme = open('README.md').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 setup(
     name='py65emu',
-    version='0.0.0',
+    version='1.0.0',
     description='A 6502 Emulator',
     long_description=readme + '\n\n' + history,
     author='Jeremy Neiman',
@@ -32,19 +31,19 @@ setup(
     include_package_data=True,
     install_requires=[
     ],
+    python_requires='>=2.7, <3.9',
     license="WTFPL",
     zip_safe=False,
     keywords='py65emu',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
         'License :: WTFPL',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     test_suite='tests',
 )

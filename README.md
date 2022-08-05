@@ -1,14 +1,12 @@
-===============================
-Python 6502 Emulator
-===============================
+# Python 6502 Emulator
 
-.. image:: https://travis-ci.org/docmarionum1/py65emu.png?branch=master
-        :target: https://travis-ci.org/docmarionum1/py65emu
+
+[![Tests](https://github.com/docmarionum1/py65emu/actions/workflows/run-tests.yml/badge.svg?branch=master)](https://github.com/docmarionum1/py65emu/actions/workflows/run-tests.yml)
 
 
 A MOS 6502 Emulator intended to be used from within other programs.  All opcodes, included the undocumented illegal opcodes are implemented.
 
-Example Usage:::
+Example Usage
 
         from py65emu.cpu import CPU
         from py65emu.mmu import MMU
@@ -48,7 +46,7 @@ Example Usage:::
 
         
 
-The full set of parameters for CPU is::
+The full set of parameters for CPU is
 
         mmu: An instance of MMU
         pc: The starting address of the pc (program counter)
@@ -58,7 +56,7 @@ The full set of parameters for CPU is::
         magic: A value needed for the illegal opcodes, XAA.  This value differs
             between different versions, even of the same CPU.  The default is 0xee.
 
-And for MMU, the tuple values are::
+And for MMU, the tuple values are
 
         start : int
             The starting address of the block of memory
