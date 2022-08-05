@@ -12,3 +12,4 @@ Contributors
 
 * Irmen de Jong <irmen@razorvine.net>
 * Brad Smith <brad@rainwarrior.ca>
+* Chris Sawer

@@ -6,9 +6,9 @@ name: Tests
 on:
   # Triggers the workflow on push or pull request events but only for the "master" branch
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        python-version: ["2.7", "3.6", "3.7", "3.8", "3.9", "3.10", "pypy-2.7", "pypy-3.8", "pypy-3.9"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "pypy-3.8", "pypy-3.9"]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
