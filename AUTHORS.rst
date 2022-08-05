@@ -10,4 +10,5 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Irmen de Jong <irmen@razorvine.net>
+* Brad Smith <brad@rainwarrior.ca>
